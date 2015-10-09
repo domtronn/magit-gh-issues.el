@@ -34,10 +34,12 @@
 (require 's)
 (require 'browse-url)
 
-(defun magit-gh-issues-get-api ()
+(defun magit-gh-issues--get-api ()
+  "Get the `gh-issues-api` object."
   (gh-issues-api "api" :sync t :num-retries 1 :cache (gh-cache "cache")))
 
-(defun magit-gh-issues-parse-url (url)
+(defun magit-gh-issues--parse-url (url)
+  "Parse a remote URL into a cons cell of ( username . reponame )."
 	(let* ((fixed-url (if (and (not (s-matches? "^[a-zA-Z_-]+://" url))
                              (s-matches? ":" url))
 												(concat "ssh://" (s-replace ":" "/" url))
@@ -46,38 +48,49 @@
 		(let ((repo (s-match "/\\(.+\\)/\\([^/]+\\)/?$" (url-filename parsed-url))))
 			(cons (cadr repo) (s-chop-suffix ".git" (cadr (cdr repo)))))))
   
-(defun magit-gh-issues-guess-repo ()
+(defun magit-gh-issues--guess-repo ()
+  "Attempt to guess the repo object using remote."
   (let* ((remote (car (magit-git-lines "remote")))
 				 (url (magit-get "remote" remote "url")))
-		(magit-gh-issues-parse-url url)))
+		(magit-gh-issues--parse-url url)))
 
-(defmacro magit-gh-issues-make-face (name col)
+(defmacro magit-gh-issues--make-face (name col)
+  "Macro to make a face called NAME with foreground and box COL."
   (let ((face-name (intern name)))
     `(defface ,face-name
        '((t :foreground ,col :box t))
        ,(concat "Face for GitHub label " name ".")
        :group 'magit-faces)))
 
-(defun magit-gh-issues-get-issues ()
-	(let* ((api (magit-gh-issues-get-api))
-				 (repo (magit-gh-issues-guess-repo))
-				 (user (car repo))
-				 (proj (cdr repo)))
-		(oref (gh-issues-issue-list api user proj) :data)))
-
 (defun magit-gh--build-face-name (user proj name)
+  "Build the name for a label face from USER PROJ and NAME.
+
+The format should be `magit-gh-user-repo-label-name-face`"
   (replace-regexp-in-string
    "[. ]" "-"
-   (format "magit-gh-label-%s-%s-%s-face" user proj name)))
+   (format "magit-gh-%s-%s-label-%s-face" user proj name)))
 
 (defun magit-gh-issues-get-labels ()
-	(let* ((api (magit-gh-issues-get-api))
+  "Get the raw labels data from the gh library for repo."
+	(let* ((api (magit-gh-issues--get-api))
 				 (repo (magit-gh-issues-guess-repo))
 				 (user (car repo))
 				 (proj (cdr repo)))
 		(oref (gh-issues-label-list api user proj) :data)))
 
+(defun magit-gh-issues-get-issues ()
+  "Get the raw issues data from the gh library for repo."
+	(let* ((api (magit-gh-issues--get-api))
+				 (repo (magit-gh-issues-guess-repo))
+				 (user (car repo))
+				 (proj (cdr repo)))
+		(oref (gh-issues-issue-list api user proj) :data)))
+
 (defun magit-gh-issues-reload ()
+  "Reload the issues by clearing the cache and fetching both
+the labels and the issues (which will set them in the cache).
+
+It the refreshes magit status to re-render the issues section."
   (interactive)
   (let ((repo (magit-gh-issues-guess-repo)))
     (if (not (and repo (car repo) (cdr repo)))
@@ -88,7 +101,9 @@
       (magit-refresh))))
 
 (defun magit-gh-issues-purge-cache ()
-  (let* ((api (magit-gh-issues-get-api))
+  "Purge the cache of all items for a repo matching the current
+repos user and repo name."
+  (let* ((api (magit-gh-issues--get-api))
          (cache (oref api :cache))
          (repo (magit-gh-issues-guess-repo)))
     (pcache-map cache (lambda (k v)
@@ -98,6 +113,7 @@
                           (pcache-invalidate cache k))))))
 
 (defun magit-gh--cached-p (type api user proj)
+  "Check whether a repo has a cache for TYPE in API under USER & PROJ."
     (let ((cache-repo (format "/repos/%s/%s/%s" user proj type))
           (cached? nil))
       (pcache-map (oref api :cache)
@@ -106,12 +122,15 @@
       cached?))
 
 (defun magit-gh-issues-cached-p (api user proj)
+  "Check whether issues have been cached in API for USER & PROJ."
   (magit-gh--cached-p "issues" api user proj))
 
 (defun magit-gh-labels-cached-p (api user proj)
+  "Check whether labels have been cached in API for USER & PROJ."
   (magit-gh--cached-p "labels" api user proj))
 	  
 (defun magit-gh-issues-visit-issue ()
+  "Get the URL meta data of the current issue and visit it in a browser."
   (interactive)
   (let ((url (magit-section-value (magit-current-section))))
     (when (yes-or-no-p (format "Would you like to open %s in a browser?" url))
@@ -127,10 +146,11 @@
 (magit-define-section-jumper issues "Issues")
 
 (defun magit-ghi-insert-ghi ()
+  "Insert the actual issues sections"
 	(let* ((repo (magit-gh-issues-guess-repo))
          (user (car repo))
          (proj (cdr repo))
-         (api (magit-gh-issues-get-api))
+         (api (magit-gh-issues--get-api))
          (issues-cached? (magit-gh-issues-cached-p api user proj))
          (issues (when issues-cached? (magit-gh-issues-get-issues)))
          (labels-cached? (magit-gh-labels-cached-p api user proj))
@@ -141,7 +161,7 @@
 			(dolist (label labels)
 				(let* ((name (magit-gh--build-face-name user proj (oref label :name)))
 							 (color (oref label :color)))
-					(eval `(magit-gh-issues-make-face ,name ,(concat "#" color))))))
+					(eval `(magit-gh-issues--make-face ,name ,(concat "#" color))))))
 		
     (when (or (not issues-cached?) (> (length issues) 0))
 			(magit-insert-section (issues)
@@ -202,6 +222,7 @@
 
 (define-key magit-status-mode-map (kbd "Ig") 'magit-gh-issues-reload)
 
+;;;###autoload
 (define-minor-mode magit-ghi-mode "GitHub Issues support for Magit using gh"
 	:lighter " ghi"
 	:require 'magit-ghi
@@ -216,11 +237,13 @@
 	(when (called-interactively-p 'any)
 		(magit-refresh)))
 
+;;;###autoload
 (defun turn-on-magit-ghi ()
   "Unconditionally turn on `magit-ghi-mode`."
 	(magit-ghi-mode 1))
 
+(provide 'magit-gh-issues)
 ;; Local Variables:
 ;; indent-tabs-mode: nil
-;; eval: (flycheck-mode 0)
 ;; End:
+;;; magit-gh-issues.el ends here
