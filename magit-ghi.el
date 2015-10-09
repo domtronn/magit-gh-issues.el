@@ -2,6 +2,7 @@
 (require 'gh)
 (require 'gh-issues)
 (require 's)
+(require 'browse-url)
 
 (defun magit-gh-issues-get-api ()
   (gh-issues-api "api" :sync t :num-retries 1 :cache nil))
@@ -43,7 +44,9 @@
 	  
 (defun magit-gh-issues-visit-issue ()
   (interactive)
-  (message "You clicked an issue! Well done."))
+  (let ((url (magit-section-value (magit-current-section))))
+    (when (yes-or-no-p (format "Would you like to open %s in a browser?" url))
+      (browse-url url))))
 
 (defvar magit-issue-section-map
   (let ((map (make-sparse-keymap)))
