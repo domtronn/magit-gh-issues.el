@@ -95,15 +95,14 @@
                   (magit-insert heading)
                   (magit-insert-heading)
                   (when body
-                    (dolist (para (split-string body "\n"))
-                      (magit-insert-section (body)
-                        (magit-insert (propertize
-                                       (magit-gh-issues-format-text-in-rectangle
-                                        (format "%s\n" (s-replace "" "" para)) 100)
-                                       'face 'magit-dimmed))
-                        (magit-insert-heading))))
-                  (when (and body (> (length (split-string body "\n")) 0))
-                    (insert "\n")))))))
+                    (magit-insert-section (body)
+                      (magit-insert (propertize
+                                     (magit-gh-issues-format-text-in-rectangle
+                                      (format "%s\n\n" (replace-regexp-in-string "[_`*]\\(.*?\\)[*`_]" "\\1"
+                                                                                 (replace-regexp-in-string "```.*$" ""
+                                                                                            (s-replace "" "" body)))) 120)
+                                     'face 'magit-dimmed))
+                        (magit-insert-heading)))))))))
 				(when (> (length issues) 0)
 					(insert "\n") t)))))
 
