@@ -53,6 +53,7 @@
 					(eval `(magit-gh-issues-make-face ,name ,(concat "#" color))))))
 		(when (> (length issues) 0)
 			(magit-insert-section (issues)
+        'issues "Issues Section" t
 				(magit-insert-heading "Issues:")
 				(dolist (issue issues)
 					(let* ((id (oref issue :number))
@@ -84,11 +85,11 @@
                                      (magit-gh-issues-format-text-in-rectangle
                                       (format "%s\n" (s-replace "" "" para)) 100)
                                      'face 'magit-dimmed))
-                      (magit-insert-heading)
-                      t)))
+                      (magit-insert-heading))))
 								(when (and body (> (length (split-string body "\n")) 0))
 									(insert "\n")))))))
 				(when (> (length issues) 0)
+          (magit-section-hide-children (magit-get-section '((issues) (status))))
 					(insert "\n") t)))))
 
 (defun magit-gh-issues-format-text-in-rectangle (text width)
