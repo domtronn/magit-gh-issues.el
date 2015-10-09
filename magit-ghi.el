@@ -157,7 +157,7 @@
 				(when (> (length issues) 0)
 					(insert "\n") t)
         (when (not issues-cached?)
-					(insert "Fetch issues by pressing `I g g`\n\n") t)))))
+					(insert "Fetch issues by pressing `I g`\n\n") t)))))
 
 (defun magit-gh-issues-format-text-in-rectangle (text width)
 	"Wrap a block of TEXT with a maximum WIDTH and indent."
