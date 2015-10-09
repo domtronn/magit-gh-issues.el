@@ -54,7 +54,8 @@
         (message "Remote repository is not configured or incorrect.")
       (magit-gh-issues-purge-cache)
       (magit-gh-issues-get-labels)
-      (magit-gh-issues-get-issues))))
+      (magit-gh-issues-get-issues)
+      (magit-refresh))))
 
 (defun magit-gh-issues-purge-cache ()
   (let* ((api (magit-gh-issues-get-api))
@@ -112,7 +113,7 @@
 							 (color (oref label :color)))
 					(eval `(magit-gh-issues-make-face ,name ,(concat "#" color))))))
 		
-    (when (> (length issues) 0)
+    (when (or (not issues-cached?) (> (length issues) 0))
 			(magit-insert-section (issues)
 				(magit-insert-heading "Issues:")
 				(dolist (issue issues)
@@ -154,7 +155,9 @@
                                      'face 'magit-dimmed))
                       (magit-insert-heading))))))))
 				(when (> (length issues) 0)
-					(insert "\n") t)))))
+					(insert "\n") t)
+        (when (not issues-cached?)
+					(insert "Fetch issues by pressing `I g g`\n\n") t)))))
 
 (defun magit-gh-issues-format-text-in-rectangle (text width)
 	"Wrap a block of TEXT with a maximum WIDTH and indent."
@@ -167,7 +170,9 @@
 			(goto-char (+ (point) width)))
 		(format "%s" (buffer-substring (point-min) (point-max)))))
 
-(define-minor-mode magit-ghi-mode "GitHub Issues support for Magit using ghi"
+(define-key magit-status-mode-map (kbd "Ig") 'magit-gh-issues-reload)
+
+(define-minor-mode magit-ghi-mode "GitHub Issues support for Magit using gh"
 	:lighter " ghi"
 	:require 'magit-ghi
 	(or (derived-mode-p 'magit-mode)
