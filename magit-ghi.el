@@ -41,6 +41,19 @@
 				 (proj (cdr repo)))
 		(oref (gh-issues-label-list api user proj) :data)))
 	  
+(defun magit-gh-issues-visit-issue ()
+  (interactive)
+  (message "You clicked an issue! Well done."))
+
+(defvar magit-issue-section-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map "\r" 'magit-gh-issues-visit-issue)
+    (define-key map [C-return] 'magit-gh-issues-visit-issue)
+    map)
+  "Keymap for `issues` section.")
+
+(magit-define-section-jumper issues "Issues")
+
 (defun magit-ghi-insert-ghi ()
 	(let ((api (magit-gh-issues-get-api))
 				(issues (magit-gh-issues-get-issues))
@@ -53,16 +66,16 @@
 					(eval `(magit-gh-issues-make-face ,name ,(concat "#" color))))))
 		(when (> (length issues) 0)
 			(magit-insert-section (issues)
-        'issues "Issues Section" t
 				(magit-insert-heading "Issues:")
 				(dolist (issue issues)
-					(let* ((id (oref issue :number))
+					(let* ((label-string nil)
+                 (id (oref issue :number))
 								 (state (oref issue :state))
 								 (labels (oref issue :labels))
-								 (label-string nil)
 								 (title (oref issue :title))
 								 (open (string= "open" state))
-								 (body (oref issue :body)))
+								 (body (oref issue :body))
+                 (url (oref issue :html-url)))
 						(when labels
 							(dolist (label labels)
 								(let* ((name (cdr (assoc 'name label)))
@@ -70,26 +83,25 @@
 									(setq label-string (concat label-string s)))))
 						(let ((heading
 									 (format "%s\t%s %-10s\n"
-													(propertize (format "#%s" (number-to-string id))
-																			'face 'magit-tag)
-													title
-													(or label-string ""))))
-						(when open
-							(magit-insert-section (issue)
-								(magit-insert heading)
-								(magit-insert-heading)
-								(when body
-									(dolist (para (split-string body "\n"))
-										(magit-insert-section (body)
-											(magit-insert (propertize
-                                     (magit-gh-issues-format-text-in-rectangle
-                                      (format "%s\n" (s-replace "" "" para)) 100)
-                                     'face 'magit-dimmed))
-                      (magit-insert-heading))))
-								(when (and body (> (length (split-string body "\n")) 0))
-									(insert "\n")))))))
+                           (propertize (format "#%s" (number-to-string id))
+                                       'face 'magit-tag)
+                           title
+                           (or label-string ""))))
+              (when open
+                (magit-insert-section (issue url t)
+                  (magit-insert heading)
+                  (magit-insert-heading)
+                  (when body
+                    (dolist (para (split-string body "\n"))
+                      (magit-insert-section (body)
+                        (magit-insert (propertize
+                                       (magit-gh-issues-format-text-in-rectangle
+                                        (format "%s\n" (s-replace "" "" para)) 100)
+                                       'face 'magit-dimmed))
+                        (magit-insert-heading))))
+                  (when (and body (> (length (split-string body "\n")) 0))
+                    (insert "\n")))))))
 				(when (> (length issues) 0)
-          (magit-section-hide-children (magit-get-section '((issues) (status))))
 					(insert "\n") t)))))
 
 (defun magit-gh-issues-format-text-in-rectangle (text width)
