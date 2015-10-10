@@ -120,6 +120,8 @@ repos user and repo name."
   (let ((map (make-sparse-keymap)))
     (define-key map "\r" 'magit-gh-issues-visit-issue)
     (define-key map [C-return] 'magit-gh-issues-visit-issue)
+    (define-key map "a" 'magit-gh-issues-add-label)
+    (define-key map "k" 'magit-gh-issues-remove-label)
     map)
   "Keymap for `issues` section.")
 
@@ -191,22 +193,43 @@ It refreshes magit status to re-render the issues section."
       (magit-gh-issues-get-issues)
       (magit-refresh))))
 
+
+(defmethod magit-gh-issues--api-add-label ((api gh-issues-api) user repo
+                                           issue-or-issue-id label)
+  (let ((issue-id (gh-issues--issue-id issue-or-issue-id)))
+    (gh-api-authenticated-request
+     api (gh-object-list-reader (oref api label-cls)) "POST"
+     (format "/repos/%s/%s/issues/%s/labels" user repo issue-id)
+     (list label))))
+
+(defmethod magit-gh-issues--api-remove-label ((api gh-issues-api) user repo
+                                           issue-or-issue-id label)
+  (let ((issue-id (gh-issues--issue-id issue-or-issue-id)))
+    (gh-api-authenticated-request
+     api (gh-object-list-reader (oref api label-cls)) "DELETE"
+     (format "/repos/%s/%s/issues/%s/labels/%s" user repo issue-id label))))
+
 (defun magit-gh-issues-add-label ()
   "Add a label from a popup menu to the current issue and refresh."
   (interactive)
-  (when (eq 'issue (magit-section-type (magit-current-section)))
+  (magit-gh-issues--call-label-api 'magit-gh-issues--api-add-label))
+
+(defun magit-gh-issues-remove-label ()
+  "Add a label from a popup menu to the current issue and refresh."
+  (interactive)
+  (magit-gh-issues--call-label-api 'magit-gh-issues--api-remove-label))
+
+(defun magit-gh-issues--call-label-api (f)
+  "Perform the API call F for the labels of the current issue."
+    (when (eq 'issue (magit-section-type (magit-current-section)))
     (let* ((repo (magit-gh-issues--guess-repo))
-           (labels (mapcar
-                    (lambda (l) (list (cons 'name (format "%s" (gh-issues--label-name l)))))
-                    (magit-gh-issues-get-labels)))
+           (labels (cdr (assoc 'labels (magit-section-value (magit-current-section)))))
            (prompt (magit-gh-issues--label-list labels (car repo) (cdr repo))))
       (let* ((label (replace-regexp-in-string "^ \\(.*\\) $" "\\1" (format "%s" (popup-menu* prompt))))
              (issue (magit-section-value (magit-current-section)))
              (url (cdr (assoc 'url issue)))
              (id (cdr (assoc 'id issue))))
-        (gh-issues-labels-add-to-issue
-         (magit-gh-issues--get-api) (car repo) (cdr repo)
-         id (list label))
+        (funcall f (magit-gh-issues--get-api) (car repo) (cdr repo) id label)
         (magit-gh-issues-reload)))))
 
 (defun magit-ghi-insert-ghi ()
@@ -236,7 +259,7 @@ It refreshes magit status to re-render the issues section."
                  (label-string (when labels
                                  (magit-gh-issues--make-label-string labels user proj))))
               (when open
-                (magit-insert-section (issue `((url . ,url) (id . ,id)) t)
+                (magit-insert-section (issue `((url . ,url) (id . ,id) (labels . ,labels)) t)
                   (magit-insert (magit-gh-issues--make-heading-string
                                  id (oref issue :title) label-string))
                   (magit-insert-heading)
