@@ -212,27 +212,30 @@ It refreshes magit status to re-render the issues section."
 (defun magit-gh-issues-add-label ()
   "Add a label from a popup menu to the current issue and refresh."
   (interactive)
-  (magit-gh-issues--call-label-api 'magit-gh-issues--api-add-label))
+  (let ((labels (mapcar
+                    (lambda (l) (list (cons 'name (format "%s" (gh-issues--label-name l)))))
+                    (magit-gh-issues-get-labels))))
+   (magit-gh-issues--call-label-api labels 'magit-gh-issues--api-add-label)))
 
 (defun magit-gh-issues-remove-label ()
-  "Add a label from a popup menu to the current issue and refresh."
+  "Remove a label from a popup menu to the current issue and refresh."
   (interactive)
-  (magit-gh-issues--call-label-api 'magit-gh-issues--api-remove-label))
+  (let ((labels (cdr (assoc 'labels (magit-section-value (magit-current-section))))))
+    (magit-gh-issues--call-label-api labels 'magit-gh-issues--api-remove-label)))
 
-(defun magit-gh-issues--call-label-api (f)
-  "Perform the API call F for the labels of the current issue."
+(defun magit-gh-issues--call-label-api (labels f)
+  "Prompt LABELS and perform the API call F for the labels of the current issue."
     (when (eq 'issue (magit-section-type (magit-current-section)))
     (let* ((repo (magit-gh-issues--guess-repo))
-           (labels (cdr (assoc 'labels (magit-section-value (magit-current-section)))))
            (prompt (magit-gh-issues--label-list labels (car repo) (cdr repo))))
-      (let* ((label (replace-regexp-in-string "^ \\(.*\\) $" "\\1" (format "%s" (popup-menu* prompt))))
+      (let* ((label (replace-regexp-in-string "^ \\(.*\\) $" "\\1" (format "%s" (popup-menu* prompt :point (line-end-position)))))
              (issue (magit-section-value (magit-current-section)))
              (url (cdr (assoc 'url issue)))
              (id (cdr (assoc 'id issue))))
         (funcall f (magit-gh-issues--get-api) (car repo) (cdr repo) id label)
         (magit-gh-issues-reload)))))
 
-(defun magit-ghi-insert-ghi ()
+(defun magit-gh-issues-insert-issues ()
   "Insert the actual issues sections into magit."
 	(let* ((repo (magit-gh-issues--guess-repo))
          (user (car repo))
@@ -286,24 +289,19 @@ It refreshes magit status to re-render the issues section."
 (define-key magit-status-mode-map (kbd "Ig") 'magit-gh-issues-reload)
 
 ;;;###autoload
-(define-minor-mode magit-ghi-mode "GitHub Issues support for Magit using gh"
+(define-minor-mode magit-gh-issues-mode "GitHub Issues support for Magit using gh"
 	:lighter " ghi"
-	:require 'magit-ghi
+	:require 'magit-gh-issues
 	(or (derived-mode-p 'magit-mode)
 			(error "This mode only makes sense when used with magit"))
-	(if magit-ghi-mode
+	(if magit-gh-issues-mode
 			(magit-add-section-hook
 			 'magit-status-sections-hook
-			 'magit-ghi-insert-ghi
+			 'magit-gh-issues-insert-issues
 			 'magit-insert-stashes)
-		(remove-hook 'magit-status-sections-hook 'magit-ghi-insert-ghi))
+		(remove-hook 'magit-status-sections-hook 'magit-gh-issues-insert-issues))
 	(when (called-interactively-p 'any)
 		(magit-refresh)))
-
-;;;###autoload
-(defun turn-on-magit-ghi ()
-  "Unconditionally turn on `magit-ghi-mode`."
-	(magit-ghi-mode 1))
 
 (provide 'magit-gh-issues)
 ;; Local Variables:
