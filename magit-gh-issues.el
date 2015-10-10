@@ -73,7 +73,7 @@ The format should be `magit-gh-user-repo-label-name-face`"
 (defun magit-gh-issues-get-labels ()
   "Get the raw labels data from the gh library for repo."
 	(let* ((api (magit-gh-issues--get-api))
-				 (repo (magit-gh-issues-guess-repo))
+				 (repo (magit-gh-issues--guess-repo))
 				 (user (car repo))
 				 (proj (cdr repo)))
 		(oref (gh-issues-label-list api user proj) :data)))
@@ -81,7 +81,7 @@ The format should be `magit-gh-user-repo-label-name-face`"
 (defun magit-gh-issues-get-issues ()
   "Get the raw issues data from the gh library for repo."
 	(let* ((api (magit-gh-issues--get-api))
-				 (repo (magit-gh-issues-guess-repo))
+				 (repo (magit-gh-issues--guess-repo))
 				 (user (car repo))
 				 (proj (cdr repo)))
 		(oref (gh-issues-issue-list api user proj) :data)))
@@ -92,7 +92,7 @@ the labels and the issues (which will set them in the cache).
 
 It the refreshes magit status to re-render the issues section."
   (interactive)
-  (let ((repo (magit-gh-issues-guess-repo)))
+  (let ((repo (magit-gh-issues--guess-repo)))
     (if (not (and repo (car repo) (cdr repo)))
         (message "Remote repository is not configured or incorrect.")
       (magit-gh-issues-purge-cache)
@@ -105,7 +105,7 @@ It the refreshes magit status to re-render the issues section."
 repos user and repo name."
   (let* ((api (magit-gh-issues--get-api))
          (cache (oref api :cache))
-         (repo (magit-gh-issues-guess-repo)))
+         (repo (magit-gh-issues--guess-repo)))
     (pcache-map cache (lambda (k v)
                         (when (string-match
                                (format "/repos/%s/%s/" (car repo) (cdr repo))
@@ -145,9 +145,52 @@ repos user and repo name."
 
 (magit-define-section-jumper issues "Issues")
 
+(defun magit-gh-issues--make-label-faces (labels user proj)
+  "Create a face for each label in LABELS namespaced by USER & PROJ."
+  (dolist (label labels)
+    (let* ((name (magit-gh--build-face-name user proj (oref label :name)))
+           (color (oref label :color)))
+      (eval `(magit-gh-issues--make-face ,name ,(concat "#" color))))))
+
+(defun magit-gh-issues--make-label-string (labels user proj)
+  "Create a propertized string of LABELS using faces namespaced by USER & PROJ."
+  (let ((result ""))
+    (dolist (label labels)
+      (let* ((name (cdr (assoc 'name label)))
+             (s (format "%s "
+                        (propertize
+                         name
+                         'face (intern (magit-gh--build-face-name user proj name))))))
+        (setq result (concat result s))))
+    result))
+
+(defun magit-gh-issues--unmarkdown-body (body)
+  "Remove markdown decoration like underscores from BODY."
+  (let ((regexps '(("\\[\\(.*?\\)\\](.*?)" . "\\1")
+                   ("[_`*]\\(.*?\\)[*`_]" . "\\1") 
+                   ("```.*$" . "")
+                   ("" . ""))))
+    (mapc (lambda (regexp) (setq body (replace-regexp-in-string (car regexp) (cdr regexp) body))) regexps))
+  (format "%s\n\n" body))
+
+(defun magit-gh-issues--make-heading-string (id title &optional labels)
+  "Create the propertized string used for issue headers using ID & TITLE.
+
+If LABELS is non-nil, build the title will be appended with a propertized list
+of labels specific to that GitHub project."
+  (let ((id-p (propertize (format "#%s" (number-to-string id)) 'face 'magit-tag)))
+    (format "%s\t%s %s\n" id-p title (or labels ""))))
+
+(defun magit-gh-issues--make-body-string (body)
+  "Create the propertized string used for the issue BODY."
+  (propertize
+   (magit-gh-issues-format-text-in-rectangle
+    (magit-gh-issues--unmarkdown-body body) 120)
+   'face 'magit-dimmed))
+
 (defun magit-ghi-insert-ghi ()
-  "Insert the actual issues sections"
-	(let* ((repo (magit-gh-issues-guess-repo))
+  "Insert the actual issues sections into magit."
+	(let* ((repo (magit-gh-issues--guess-repo))
          (user (car repo))
          (proj (cdr repo))
          (api (magit-gh-issues--get-api))
@@ -158,53 +201,30 @@ repos user and repo name."
          (label-string nil))
     
 		(when (> (length labels) 0)
-			(dolist (label labels)
-				(let* ((name (magit-gh--build-face-name user proj (oref label :name)))
-							 (color (oref label :color)))
-					(eval `(magit-gh-issues--make-face ,name ,(concat "#" color))))))
-		
+      (magit-gh-issues--make-label-faces labels user proj))
+
     (when (or (not issues-cached?) (> (length issues) 0))
 			(magit-insert-section (issues)
 				(magit-insert-heading "Issues:")
 				(dolist (issue issues)
-					(let* ((label-string nil)
-                 (id (oref issue :number))
-								 (state (oref issue :state))
+					(let* ((body (oref issue :body))
+                 (url (oref issue :html-url))
+								 (open (string= "open" (oref issue :state)))
 								 (labels (oref issue :labels))
-								 (title (oref issue :title))
-								 (open (string= "open" state))
-								 (body (oref issue :body))
-                 (url (oref issue :html-url)))
-						(when labels
-							(dolist (label labels)
-								(let* ((name (cdr (assoc 'name label)))
-											 (s (format "%s "
-                                  (propertize name 'face
-                                              (intern
-                                               (magit-gh--build-face-name user proj name))))))
-									(setq label-string (concat label-string s)))))
-						(let ((heading
-									 (format "%s\t%s %s\n"
-                           (propertize (format "#%s" (number-to-string id))
-                                       'face 'magit-tag)
-                           title
-                           (or label-string ""))))
+                 (label-string (when labels
+                                 (magit-gh-issues--make-label-string labels user proj))))
               (when open
                 (magit-insert-section (issue url t)
-                  (magit-insert heading)
+                  (magit-insert (magit-gh-issues--make-heading-string
+                                 (oref issue :number)
+                                 (oref issue :title)
+                                 label-string))
                   (magit-insert-heading)
                   (when body
                     (magit-insert-section (body)
-                      (magit-insert (propertize
-                                     (magit-gh-issues-format-text-in-rectangle
-                                      (format "%s\n\n"
-                                              (replace-regexp-in-string "\\[\\(.*?\\)\\](.*?)" "\\1"
-                                                                        (replace-regexp-in-string "[_`*]\\(.*?\\)[*`_]" "\\1"
-                                                                                                  (replace-regexp-in-string "```.*$" ""
-                                                                                                                            (s-replace "" "" body))))) 120)
-                                     'face 'magit-dimmed))
-                      (magit-insert-heading))))))))
-				(when (> (length issues) 0)
+                      (magit-insert (magit-gh-issues--make-body-string body))
+                      (magit-insert-heading)))))))
+        (when (> (length issues) 0)
 					(insert "\n") t)
         (when (not issues-cached?)
 					(insert "Fetch issues by pressing `I g`\n\n") t)))))
