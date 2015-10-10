@@ -152,17 +152,23 @@ repos user and repo name."
            (color (oref label :color)))
       (eval `(magit-gh-issues--make-face ,name ,(concat "#" color))))))
 
+(defun magit-gh-issues--label-list (labels user proj)
+  "Create a propertized list of LABELS using faces namespaced by USER & PROJ."
+  (let ((result '()))
+    (dolist (label labels)
+      (message "%s" label)
+      (let* ((name (cdr (assoc 'name label)))
+             (s (format "%s"
+                        (propertize
+                         (format " %s " name)
+                         'face (intern (magit-gh--build-face-name user proj name))))))
+        (message "%s" result)
+        (setq result (append result (list s)))))
+    result))
+
 (defun magit-gh-issues--make-label-string (labels user proj)
   "Create a propertized string of LABELS using faces namespaced by USER & PROJ."
-  (let ((result ""))
-    (dolist (label labels)
-      (let* ((name (cdr (assoc 'name label)))
-             (s (format "%s "
-                        (propertize
-                         name
-                         'face (intern (magit-gh--build-face-name user proj name))))))
-        (setq result (concat result s))))
-    result))
+  (mapconcat 'format (magit-gh-issues--label-list labels user proj) " "))
 
 (defun magit-gh-issues--unmarkdown-body (body)
   "Remove markdown decoration like underscores from BODY."
