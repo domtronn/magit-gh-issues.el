@@ -257,21 +257,19 @@ It refreshes magit status to re-render the issues section."
 					(let* ((id (oref issue :number))
                  (body (oref issue :body))
                  (url (oref issue :html-url))
-								 (open (string= "open" (oref issue :state)))
 								 (labels (oref issue :labels))
                  (label-string (when labels
                                  (magit-gh-issues--make-label-string labels user proj))))
-              (when open
-                (magit-insert-section (issue `((url . ,url) (id . ,id) (labels . ,labels)) t)
-                  (magit-insert (magit-gh-issues--make-heading-string
-                                 id (oref issue :title) label-string))
-                  (magit-insert-heading)
-                  (when body
-                    (magit-insert-section (body)
-                      (magit-insert (magit-gh-issues--make-body-string body))
-                      (magit-insert-heading)))))))
+            (magit-insert-section (issue `((url . ,url) (id . ,id) (labels . ,labels)) t)
+              (magit-insert (magit-gh-issues--make-heading-string
+                             id (oref issue :title) label-string))
+              (magit-insert-heading)
+              (when body
+                (magit-insert-section (body)
+                  (magit-insert (magit-gh-issues--make-body-string body))
+                  (magit-insert-heading))))))
         (when (> (length issues) 0)
-					(insert "\n") t)
+           (insert "\n") t)
         (when (not issues-cached?)
 					(insert "Fetch issues by pressing `I g`\n\n") t)))))
 
