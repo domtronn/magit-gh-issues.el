@@ -31,6 +31,7 @@
 (require 'magit)
 (require 'gh)
 (require 'gh-issues)
+(require 'gh-issue-comments)
 (require 's)
 (require 'browse-url)
 
@@ -50,6 +51,10 @@ By default, it performs `executable-find` to try and find ghi on your PATH."
 (defun magit-gh-issues--get-api ()
   "Get the `gh-issues-api` object."
   (gh-issues-api "api" :sync t :num-retries 1 :cache (gh-cache "cache")))
+
+(defun magit-gh-issues--get-comments-api ()
+  "Get the `gh-issue-comments-api` object."
+  (gh-issue-comments-api "api" :sync t :num-retries 1 :cache (gh-cache "cache")))
 
 (defun magit-gh-issues--parse-url (url)
   "Parse a remote URL into a cons cell of ( username . reponame )."
@@ -90,6 +95,14 @@ The format should be `magit-gh-user-repo-label-name-face`"
          (user (car repo))
          (proj (cdr repo)))
     (oref (gh-issues-label-list api user proj) :data)))
+
+(defun magit-gh-issues-get-issue-comments (id)
+  "Get the raw comments data from the gh library for issue #ID."
+  (let* ((api (magit-gh-issues--get-comments-api))
+         (repo (magit-gh-issues--guess-repo))
+         (user (car repo))
+         (proj (cdr repo)))
+    (oref (gh-issue-comments-list api user proj id) :data)))
 
 (defun magit-gh-issues-get-issues ()
   "Get the raw issues data from the gh library for repo."
