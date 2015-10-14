@@ -296,7 +296,8 @@ It refreshes magit status to re-render the issues section."
   "Remove a label from a popup menu to the current issue and refresh."
   (interactive)
   (let ((labels (cdr (assoc 'labels (magit-section-value (magit-current-section))))))
-    (magit-gh-issues--call-label-api labels 'magit-gh-issues--api-remove-label)))
+    (when labels
+      (magit-gh-issues--call-label-api labels 'magit-gh-issues--api-remove-label))))
 
 (defun magit-gh-issues--call-label-api (labels f)
   "Prompt LABELS and perform the API call F for the labels of the current issue."
