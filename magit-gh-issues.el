@@ -202,8 +202,6 @@ appended with a propertized list of labels specific to that GitHub project."
         (comments-p (propertize (if comments (format "%s" (length comments)) "") 'face 'magit-cherry-equivalent)))
     (format "%s\t%s\t%s %s\n" id-p comments-p title (or labels ""))))
 
-(defun magit-gh-issues--make-body-string (body)
-  "Create the propertized string used for the issue BODY."
 (defun magit-gh-issues--make-comment-heading-string (login time)
   "Create the propertized string used for comment headers.
 
@@ -214,9 +212,12 @@ of the comment."
          (time-p (propertize time-string 'face 'magit-tag)))
     (format "\t%s - %s" login-p time-string)))
 
+(defun magit-gh-issues--make-body-string (body &optional offset)
+  "Create the propertized string used for the issue BODY.
+Providing an OFFSET will indent the region in the block."
   (propertize
    (magit-gh-issues-format-text-in-rectangle
-    (magit-gh-issues--unmarkdown-body body) 120)
+    (magit-gh-issues--unmarkdown-body body) 100 offset)
    'face 'magit-dimmed))
 
 (defun magit-gh-issues-visit-issue ()
@@ -297,7 +298,7 @@ It refreshes magit status to re-render the issues section."
   (interactive)
   (when (eq 'issue (magit-section-type (magit-current-section)))
     (let* ((issue (cdr (assoc 'issue (magit-section-value (magit-current-section)))))
-           (repo (magit-gh-issues--guess-repo)) 
+           (repo (magit-gh-issues--guess-repo))
            (id (oref issue :number)))
       (when (y-or-n-p (format "Are you sure you want to close issue #%s?" id))
         (oset issue :state "closed")
@@ -367,28 +368,44 @@ It refreshes magit status to re-render the issues section."
                  (url (oref issue :html-url))
                  (labels (oref issue :labels))
                  (label-string (when labels
-                                 (magit-gh-issues--make-label-string labels user proj))))
+                                 (magit-gh-issues--make-label-string labels user proj)))
+                 (comments (magit-gh-issues-get-issue-comments id)))
             (magit-insert-section (issue `((issue . ,issue) (labels . ,labels)) t)
               (magit-insert (magit-gh-issues--make-heading-string
-                             id (oref issue :title) label-string))
+                             id comments (oref issue :title) label-string))
               (magit-insert-heading)
               (when body
-                (magit-insert-section (body)
-                  (magit-insert (magit-gh-issues--make-body-string body))
-                  (magit-insert-heading))))))
+                (magit-insert (magit-gh-issues--make-body-string body)))
+              (when comments
+                (magit-insert-section (comments comments t)
+                  (magit-insert-heading "Comments:")
+                  (dolist (comment comments)
+                    (let ((body (oref comment :body))
+                          (user (oref (oref comment :user) :login))
+                          (time (oref comment :created_at)))
+                      (magit-insert-section (comment)
+                        (magit-insert-heading (magit-gh-issues--make-comment-heading-string user time))
+                        (magit-insert (magit-gh-issues--make-body-string body "\t\t"))))))
+                (magit-insert "\n")))))
         (when (> (length issues) 0)
           (insert "\n") t)
         (when (not issues-cached?)
           (insert "Fetch issues by pressing `I g`\n\n") t)))))
 
-(defun magit-gh-issues-format-text-in-rectangle (text width)
-  "Wrap a block of TEXT with a maximum WIDTH and indent."
+(defun magit-gh-issues-format-text-in-rectangle (text width &optional indent)
+  "Wrap a block of TEXT with a maximum WIDTH and INDENT."
   (with-temp-buffer
-    (insert text)
+    (when indent (insert indent))
+    (insert
+     (replace-regexp-in-string "\t\t$" ""
+                               (replace-regexp-in-string "\n" (concat "\n" indent)
+                                       text)))
     (goto-char (+ (point-min) width))
     (while (< (point) (point-max))
       (backward-word)
       (newline)
+      (when indent (insert indent))
+      (search-forward "\n" (+ (point) width) t)
       (goto-char (+ (point) width)))
     (format "%s" (buffer-substring (point-min) (point-max)))))
 
