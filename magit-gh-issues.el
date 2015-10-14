@@ -155,10 +155,19 @@ The format should be `magit-gh-user-repo-label-name-face`"
     (define-key map "\r" 'magit-gh-issues-visit-issue)
     (define-key map [C-return] 'magit-gh-issues-visit-issue)
     (define-key map "a" 'magit-gh-issues-add-label)
+    (define-key map "c" 'magit-gh-issues-comment-issue)
     (define-key map "r" 'magit-gh-issues-remove-label)
     (define-key map "k" 'magit-gh-issues-close-issue)
     map)
   "Keymap for `issues` section.")
+
+(defvar magit-comment-section-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map "\r" 'magit-gh-issues-visit-issue)
+    (define-key map [C-return] 'magit-gh-issues-visit-issue)
+    (define-key map "c" 'magit-gh-issues-comment-issue)
+    map)
+  "Keymap for `comment` section.")
 
 (magit-define-section-jumper issues "Issues")
 
@@ -281,19 +290,24 @@ It refreshes magit status to re-render the issues section."
             (setq default-directory (process-get process 'default-dir))
             (magit-gh-issues-reload)))))))
 
-(define-derived-mode git-issue-mode nil "Git Issue"
-  "Major mode for editing Git Issue files."
+(define-derived-mode ghi-issue-mode nil "Git Issue"
+  "Major mode for editing GHI Issue files."
   :group 'magit
   (with-editor-mode 1)
   (git-commit-setup-font-lock))
+
+(define-derived-mode ghi-comment-mode markdown-mode "Git Comment"
+  "Major mode for editing GHI Comment files."
+  :group 'magit
+  (with-editor-mode 1))
 
 (defun magit-gh-issues--reload-when-in-magit ()
   "Print message when back in magiit."
   (remove-hook 'after-change-major-mode-hook
                'magit-gh-issues--reload-when-in-magit))
 
-(add-to-list 'auto-mode-alist '("GHI_ISSUE" . git-issue-mode))
-(add-to-list 'auto-mode-alist '("GHI_COMMENT" . markdown-mode))
+(add-to-list 'auto-mode-alist '("GHI_ISSUE" . ghi-issue-mode))
+(add-to-list 'auto-mode-alist '("GHI_COMMENT" . ghi-comment-mode))
 
 (defun magit-gh-issues-close-issue ()
   "Close the current highlighted issue."
