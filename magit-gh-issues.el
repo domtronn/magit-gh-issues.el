@@ -48,6 +48,11 @@ By default, it performs `executable-find` to try and find ghi on your PATH."
   :group 'magit-gh-issues
   :type 'string)
 
+(defface magit-gh-issues-login-face
+  '((t :weight bold))
+  "Face for GitHub logins/usernames"
+  :group 'magit-faces)
+
 (defun magit-gh-issues--get-api ()
   "Get the `gh-issues-api` object."
   (gh-issues-api "api" :sync t :num-retries 1 :cache (gh-cache "cache")))
@@ -198,6 +203,16 @@ of labels specific to that GitHub project."
 
 (defun magit-gh-issues--make-body-string (body)
   "Create the propertized string used for the issue BODY."
+(defun magit-gh-issues--make-comment-heading-string (login time)
+  "Create the propertized string used for comment headers.
+
+It displays @LOGIN - TIME string and formats it from the create at label
+of the comment."
+  (let* ((login-p (propertize (format "@%s" login) 'face 'magit-gh-issues-login-face))
+         (time-string (format-time-string "%H:%M, %a %d %b, %Y" (date-to-time time)))
+         (time-p (propertize time-string 'face 'magit-tag)))
+    (format "\t%s - %s" login-p time-string)))
+
   (propertize
    (magit-gh-issues-format-text-in-rectangle
     (magit-gh-issues--unmarkdown-body body) 120)
