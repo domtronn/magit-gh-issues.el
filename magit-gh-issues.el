@@ -209,8 +209,9 @@ The format should be `magit-gh-user-repo-label-name-face`"
 ID COMMENTS TITLE, If LABELS is non-nil, build the title will be
 appended with a propertized list of labels specific to that GitHub project."
   (let ((id-p (propertize (format "#%s" (number-to-string id)) 'face 'magit-tag))
+        (title-p (magit-gh-issues-format-text-in-rectangle title (- (window-width) 5) "\t\t\t"))
         (comments-p (propertize (if comments (format "%s" (length comments)) "") 'face 'magit-cherry-equivalent)))
-    (format "%s\t%s\t%s %s\n" id-p comments-p title (or labels ""))))
+     (format "%s\t%s\t%s %s\n" id-p comments-p title-p (or labels ""))))
 
 (defun magit-gh-issues--make-comment-heading-string (login time)
   "Create the propertized string used for comment headers.
@@ -415,7 +416,7 @@ It refreshes magit status to re-render the issues section."
                           (time (oref comment :created_at)))
                       (magit-insert-section (comment `((issue . ,issue)))
                         (magit-insert-heading (magit-gh-issues--make-comment-heading-string user time))
-                        (magit-insert (magit-gh-issues--make-body-string body "\t\t"))))))
+                        (magit-insert (concat "\t\t" (magit-gh-issues--make-body-string body "\t\t")))))))
                 (magit-insert "\n")))))
         (when (> (length issues) 0)
           (insert "\n") t)
@@ -425,7 +426,6 @@ It refreshes magit status to re-render the issues section."
 (defun magit-gh-issues-format-text-in-rectangle (text width &optional indent)
   "Wrap a block of TEXT with a maximum WIDTH and INDENT."
   (with-temp-buffer
-    (when indent (insert indent))
     (insert
      (replace-regexp-in-string "\t\t$" ""
                                (replace-regexp-in-string "\n" (concat "\n" indent)
