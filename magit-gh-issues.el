@@ -134,7 +134,7 @@ repos user and repo name."
     (define-key map "\r" 'magit-gh-issues-visit-issue)
     (define-key map [C-return] 'magit-gh-issues-visit-issue)
     (define-key map "a" 'magit-gh-issues-add-label)
-    (define-key map "k" 'magit-gh-issues-remove-label)
+    (define-key map "k" 'magit-gh-issues-close-issue)
     map)
   "Keymap for `issues` section.")
 
@@ -190,7 +190,8 @@ of labels specific to that GitHub project."
 (defun magit-gh-issues-visit-issue ()
   "Get the URL meta data of the current issue and visit it in a browser."
   (interactive)
-  (let ((url (cdr (assoc 'url (magit-section-value (magit-current-section))))))
+  (let* ((issue (cdr (assoc 'issue (magit-section-value (magit-current-section)))))
+         (url (oref issue html-url)))
     (when (y-or-n-p (format "Would you like to open %s in a browser?" url))
       (browse-url url))))
 
@@ -205,7 +206,6 @@ It refreshes magit status to re-render the issues section."
       (magit-gh-issues-get-labels)
       (magit-gh-issues-get-issues)
       (magit-refresh))))
-
 
 (defmethod magit-gh-issues--api-add-label ((api gh-issues-api) user repo
                                            issue-or-issue-id label)
@@ -260,6 +260,18 @@ It refreshes magit status to re-render the issues section."
 
 (add-to-list 'auto-mode-alist '("GHI_ISSUE" . git-issue-mode))
 
+(defun magit-gh-issues-close-issue ()
+  "Close the current highlighted issue."
+  (interactive)
+  (when (eq 'issue (magit-section-type (magit-current-section)))
+    (let* ((issue (cdr (assoc 'issue (magit-section-value (magit-current-section)))))
+           (repo (magit-gh-issues--guess-repo)) 
+           (id (oref issue :number)))
+      (when (y-or-n-p (format "Are you sure you want to close issue #%s?" id))
+        (oset issue :state "closed")
+        (gh-issues-issue-update (magit-gh-issues--get-api) (car repo) (cdr repo) id issue)
+        (magit-gh-issues-reload)))))
+
 (defun magit-gh-issues-open-issue ()
   "Open an issue using ghi."
   (interactive)
@@ -291,9 +303,9 @@ It refreshes magit status to re-render the issues section."
     (let* ((repo (magit-gh-issues--guess-repo))
            (prompt (magit-gh-issues--label-list labels (car repo) (cdr repo))))
       (let* ((label (replace-regexp-in-string "^ \\(.*\\) $" "\\1" (format "%s" (popup-menu* prompt :point (line-end-position)))))
-             (issue (magit-section-value (magit-current-section)))
-             (url (cdr (assoc 'url issue)))
-             (id (cdr (assoc 'id issue))))
+             (issue (cdr (assoc 'issue (magit-section-value (magit-current-section)))))
+             (url (oref issue :url))
+             (id (oref issue :number)))
         (funcall f (magit-gh-issues--get-api) (car repo) (cdr repo) id label)
         (magit-gh-issues-reload)))))
 
@@ -322,7 +334,7 @@ It refreshes magit status to re-render the issues section."
                  (labels (oref issue :labels))
                  (label-string (when labels
                                  (magit-gh-issues--make-label-string labels user proj))))
-            (magit-insert-section (issue `((url . ,url) (id . ,id) (labels . ,labels)) t)
+            (magit-insert-section (issue `((issue . ,issue) (labels . ,labels)) t)
               (magit-insert (magit-gh-issues--make-heading-string
                              id (oref issue :title) label-string))
               (magit-insert-heading)
