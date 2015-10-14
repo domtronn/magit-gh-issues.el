@@ -18,6 +18,7 @@ Most interactions are context sensitive and only run when highlighting an issue 
 Key Binding | Command | Effect 
 --- | --- | ---
 <kbd>I o</kbd> | `magit-gh-issues-open-issue` | Open a new issue and refresh the list of issues
+<kbd>I g</kbd> | `magit-gh-issues-reload` | Purge the cache of issues and refetch them for the current project
 
 ##### Context Sensitive bindings
 
