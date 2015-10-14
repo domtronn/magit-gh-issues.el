@@ -186,9 +186,9 @@ The format should be `magit-gh-user-repo-label-name-face`"
 
 (defun magit-gh-issues--unmarkdown-body (body)
   "Remove markdown decoration like underscores from BODY."
-  (let ((regexps '(("\\[\\(.*?\\)\\](.*?)" . "\\1")
+  (let ((regexps '(("```.*$" . "")
+                   ("\\[\\(.*?\\)\\](.*?)" . "\\1")
                    ("[_`*]\\(.*?\\)[*`_]" . "\\1")
-                   ("```.*$" . "")
                    ("" . ""))))
     (mapc (lambda (regexp) (setq body (replace-regexp-in-string (car regexp) (cdr regexp) body))) regexps))
   (format "%s\n\n" body))
@@ -336,7 +336,7 @@ It refreshes magit status to re-render the issues section."
   (when (eq 'issue (magit-section-type (magit-current-section)))
     (let* ((repo (magit-gh-issues--guess-repo))
            (prompt (magit-gh-issues--label-list labels (car repo) (cdr repo))))
-      (let* ((label (replace-regexp-in-string "^ \\(.*\\) $" "\\1" (format "%s" (popup-menu* prompt :point (line-end-position)))))
+      (let* ((label (replace-regexp-in-string "^ \\(.*\\) $" "\\1" (format "%s" (completing-read "Add Tag: " prompt))))
              (issue (cdr (assoc 'issue (magit-section-value (magit-current-section)))))
              (url (oref issue :url))
              (id (oref issue :number)))
