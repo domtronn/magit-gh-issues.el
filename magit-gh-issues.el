@@ -398,7 +398,7 @@ It refreshes magit status to re-render the issues section."
                     (let ((body (oref comment :body))
                           (user (oref (oref comment :user) :login))
                           (time (oref comment :created_at)))
-                      (magit-insert-section (comment)
+                      (magit-insert-section (comment `((issue . ,issue)))
                         (magit-insert-heading (magit-gh-issues--make-comment-heading-string user time))
                         (magit-insert (magit-gh-issues--make-body-string body "\t\t"))))))
                 (magit-insert "\n")))))
