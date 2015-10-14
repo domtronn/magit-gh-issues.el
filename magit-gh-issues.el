@@ -34,6 +34,7 @@
 (require 'gh-issue-comments)
 (require 's)
 (require 'browse-url)
+(require 'markdown-mode)
 
 ;;; Group Definitions
 (defgroup magit-gh-issues nil
@@ -292,6 +293,7 @@ It refreshes magit status to re-render the issues section."
                'magit-gh-issues--reload-when-in-magit))
 
 (add-to-list 'auto-mode-alist '("GHI_ISSUE" . git-issue-mode))
+(add-to-list 'auto-mode-alist '("GHI_COMMENT" . markdown-mode))
 
 (defun magit-gh-issues-close-issue ()
   "Close the current highlighted issue."
@@ -300,7 +302,7 @@ It refreshes magit status to re-render the issues section."
     (let* ((issue (cdr (assoc 'issue (magit-section-value (magit-current-section)))))
            (repo (magit-gh-issues--guess-repo))
            (id (oref issue :number)))
-      (when (y-or-n-p (format "Are you sure you want to close issue #%s?" id))
+      (when (y-or-n-p (format "Are you sure you want to close issue #%s? " id))
         (oset issue :state "closed")
         (gh-issues-issue-update (magit-gh-issues--get-api) (car repo) (cdr repo) id issue)
         (magit-gh-issues-reload)))))
@@ -313,6 +315,19 @@ It refreshes magit status to re-render the issues section."
              (with-editor "GIT_EDITOR"
                (let ((magit-process-popup-time -1))
                  (magit-gh-issues-start-ghi "open")))))
+        (set-process-sentinel process #'magit-gh-issues-process-sentinel))
+    (error "Could not find the `ghi` executable.  Have you got it installed?")))
+
+(defun magit-gh-issues-comment-issue ()
+  "Comment on the current issue using ghi."
+  (interactive)
+  (if magit-gh-issues-ghi-executable
+      (let* ((issue (cdr (assoc 'issue (magit-section-value (magit-current-section)))))
+             (id (oref issue :number))
+             (process
+              (with-editor "GIT_EDITOR"
+                (let ((magit-process-popup-time -1))
+                  (magit-gh-issues-start-ghi "comment" (format "%s" id))))))
         (set-process-sentinel process #'magit-gh-issues-process-sentinel))
     (error "Could not find the `ghi` executable.  Have you got it installed?")))
 
