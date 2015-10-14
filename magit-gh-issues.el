@@ -34,8 +34,18 @@
 (require 's)
 (require 'browse-url)
 
-(defvar magit-gh-issues-ghi-executable "ghi"
-  "The executable path for ghi.")
+;;; Group Definitions
+(defgroup magit-gh-issues nil
+  "Customise the creation and display of GitHub issues in Magit."
+  :group 'tools
+  :group 'convenience)
+
+(defcustom magit-gh-issues-ghi-executable (executable-find "ghi")
+  "The executable with path for ghi.
+
+By default, it performs `executable-find` to try and find ghi on your PATH."
+  :group 'magit-gh-issues
+  :type 'string)
 
 (defun magit-gh-issues--get-api ()
   "Get the `gh-issues-api` object."
@@ -253,11 +263,13 @@ It refreshes magit status to re-render the issues section."
 (defun magit-gh-issues-open-issue ()
   "Open an issue using ghi."
   (interactive)
-  (let ((process
-         (with-editor "GIT_EDITOR"
-           (let ((magit-process-popup-time -1))
-             (magit-gh-issues-start-ghi "open")))))
-    (set-process-sentinel process #'magit-gh-issues-process-sentinel)))
+  (if magit-gh-issues-ghi-executable
+      (let ((process
+             (with-editor "GIT_EDITOR"
+               (let ((magit-process-popup-time -1))
+                 (magit-gh-issues-start-ghi "open")))))
+        (set-process-sentinel process #'magit-gh-issues-process-sentinel))
+    (error "Could not find the `ghi` executable.  Have you got it installed?")))
 
 (defun magit-gh-issues-add-label ()
   "Add a label from a popup menu to the current issue and refresh."
