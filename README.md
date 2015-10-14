@@ -26,6 +26,7 @@ Key Binding | Command | Effect
 --- | --- | ---
 <kbd>a</kbd> | `magit-gh-issues-add-label` | Add a label to the currently highlighted issue from a popup
 <kbd>r</kbd> | `magit-gh-issues-remove-label` | Remove a label from the currently highlighted issue
+<kbd>c</kbd> | `magit-gh-issues-comment-issue` | Comment on the current issue
 <kbd>k</kbd> | `magit-gh-issues-close-issue` | Close the current issue
 <kbd>RET</kbd> | `magit-gh-issues-visit-issue` | Open the current issue in a browser
 
@@ -41,8 +42,8 @@ You need to authorize `ghi` so that it can work with _all_ your repos
 - [x] Ability to open Issues
 - [x] Ability to close Issues
 - [x] Ability to add/remove labels
-- [ ] Display comments on Issues
-- [ ] Ability to comment on Issues
+- [x] Display comments on Issues
+- [x] Ability to comment on Issues
 - [ ] User Images next to comments
 - [ ] Ability to see Assignees
 - [ ] Assign people to issues
