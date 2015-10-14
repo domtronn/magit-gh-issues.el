@@ -187,19 +187,20 @@ The format should be `magit-gh-user-repo-label-name-face`"
 (defun magit-gh-issues--unmarkdown-body (body)
   "Remove markdown decoration like underscores from BODY."
   (let ((regexps '(("\\[\\(.*?\\)\\](.*?)" . "\\1")
-                   ("[_`*]\\(.*?\\)[*`_]" . "\\1") 
+                   ("[_`*]\\(.*?\\)[*`_]" . "\\1")
                    ("```.*$" . "")
                    ("" . ""))))
     (mapc (lambda (regexp) (setq body (replace-regexp-in-string (car regexp) (cdr regexp) body))) regexps))
   (format "%s\n\n" body))
 
-(defun magit-gh-issues--make-heading-string (id title &optional labels)
-  "Create the propertized string used for issue headers using ID & TITLE.
+(defun magit-gh-issues--make-heading-string (id comments title &optional labels)
+  "Create the propertized string used for issue headers using.
 
-If LABELS is non-nil, build the title will be appended with a propertized list
-of labels specific to that GitHub project."
-  (let ((id-p (propertize (format "#%s" (number-to-string id)) 'face 'magit-tag)))
-    (format "%s\t%s %s\n" id-p title (or labels ""))))
+ID COMMENTS TITLE, If LABELS is non-nil, build the title will be
+appended with a propertized list of labels specific to that GitHub project."
+  (let ((id-p (propertize (format "#%s" (number-to-string id)) 'face 'magit-tag))
+        (comments-p (propertize (if comments (format "%s" (length comments)) "") 'face 'magit-cherry-equivalent)))
+    (format "%s\t%s\t%s %s\n" id-p comments-p title (or labels ""))))
 
 (defun magit-gh-issues--make-body-string (body)
   "Create the propertized string used for the issue BODY."
