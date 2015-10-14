@@ -113,16 +113,18 @@ The format should be `magit-gh-user-repo-label-name-face`"
     (oref (gh-issues-issue-list api user proj) :data)))
 
 (defun magit-gh-issues-purge-cache ()
-  "Purge the cache of all items for a repo matching the current
-repos user and repo name."
-  (let* ((api (magit-gh-issues--get-api))
-         (cache (oref api :cache))
-         (repo (magit-gh-issues--guess-repo)))
-    (pcache-map cache (lambda (k v)
-                        (when (string-match
-                               (format "/repos/%s/%s/" (car repo) (cdr repo))
-                               (car k))
-                          (pcache-invalidate cache k))))))
+  "Purge the cache of all items for a repo matching a repos user and project name."
+  (mapc
+   (lambda (api)
+     (let* ((cache (oref api :cache))
+            (repo (magit-gh-issues--guess-repo)))
+       (pcache-map cache
+                   (lambda (k v)
+                     (when (string-match
+                            (format "/repos/%s/%s/" (car repo) (cdr repo))
+                            (car k))
+                       (pcache-invalidate cache k))))))
+   `(,(magit-gh-issues--get-api) ,(magit-gh-issues--get-comments-api))))
 
 (defun magit-gh--cached-p (type api user proj)
   "Check whether a repo has a cache for TYPE in API under USER & PROJ."
