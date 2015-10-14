@@ -134,6 +134,7 @@ repos user and repo name."
     (define-key map "\r" 'magit-gh-issues-visit-issue)
     (define-key map [C-return] 'magit-gh-issues-visit-issue)
     (define-key map "a" 'magit-gh-issues-add-label)
+    (define-key map "r" 'magit-gh-issues-remove-label)
     (define-key map "k" 'magit-gh-issues-close-issue)
     map)
   "Keymap for `issues` section.")
@@ -306,8 +307,9 @@ It refreshes magit status to re-render the issues section."
              (issue (cdr (assoc 'issue (magit-section-value (magit-current-section)))))
              (url (oref issue :url))
              (id (oref issue :number)))
-        (funcall f (magit-gh-issues--get-api) (car repo) (cdr repo) id label)
-        (magit-gh-issues-reload)))))
+        (when label
+          (funcall f (magit-gh-issues--get-api) (car repo) (cdr repo) id label)
+          (magit-gh-issues-reload))))))
 
 (defun magit-gh-issues-insert-issues ()
   "Insert the actual issues sections into magit."

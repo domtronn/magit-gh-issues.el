@@ -35,3 +35,13 @@ brew install ghi
 ghi config --auth
 ```
 You need to authorize `ghi` so that it can work with _all_ your repos
+
+#### Planned Features
+- [x] Ability to open Issues
+- [x] Ability to close Issues
+- [x] Ability to add/remove labels
+- [ ] Display comments on Issues
+- [ ] Ability to comment on Issues
+- [ ] User Images next to comments
+- [ ] Ability to see Assignees
+- [ ] Assign people to issues
