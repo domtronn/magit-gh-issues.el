@@ -34,6 +34,9 @@
 (require 's)
 (require 'browse-url)
 
+(defvar magit-gh-issues-ghi-executable "ghi"
+  "The executable path for ghi.")
+
 (defun magit-gh-issues--get-api ()
   "Get the `gh-issues-api` object."
   (gh-issues-api "api" :sync t :num-retries 1 :cache (gh-cache "cache")))
@@ -208,6 +211,53 @@ It refreshes magit status to re-render the issues section."
     (gh-api-authenticated-request
      api (gh-object-list-reader (oref api label-cls)) "DELETE"
      (format "/repos/%s/%s/issues/%s/labels/%s" user repo issue-id label))))
+
+(defun magit-gh-issues-start-ghi (&rest args)
+  "Use magits process to run ghi ARGS with an editor."
+  (run-hooks 'magit-pre-start-git-hook)
+  (apply #'magit-start-process magit-gh-issues-ghi-executable nil
+         (-flatten args)))
+
+(defun magit-gh-issues-process-sentinel (process event)
+  "Default sentinel used by `magit-start-process' around PROCESS and EVENT."
+  (when (memq (process-status process) '(exit signal))
+    (setq event (substring event 0 -1))
+    (when (string-match "^finished" event)
+      (message (concat (capitalize (process-name process)) " finished")))
+    (magit-process-finish process)
+    (when (eq process magit-this-process)
+      (setq magit-this-process nil))
+    (unless (process-get process 'inhibit-refresh)
+      (let ((inhibit-magit-revert (process-get process 'inhibit-revert))
+            (command-buf (process-get process 'command-buf)))
+        (if (buffer-live-p command-buf)
+            (with-current-buffer command-buf
+              (magit-gh-issues-reload))
+          (with-temp-buffer
+            (setq default-directory (process-get process 'default-dir))
+            (magit-gh-issues-reload)))))))
+
+(define-derived-mode git-issue-mode nil "Git Issue"
+  "Major mode for editing Git Issue files."
+  :group 'magit
+  (with-editor-mode 1)
+  (git-commit-setup-font-lock))
+
+(defun magit-gh-issues--reload-when-in-magit ()
+  "Print message when back in magiit."
+  (remove-hook 'after-change-major-mode-hook
+               'magit-gh-issues--reload-when-in-magit))
+
+(add-to-list 'auto-mode-alist '("GHI_ISSUE" . git-issue-mode))
+
+(defun magit-gh-issues-open-issue ()
+  "Open an issue using ghi."
+  (interactive)
+  (let ((process
+         (with-editor "GIT_EDITOR"
+           (let ((magit-process-popup-time -1))
+             (magit-gh-issues-start-ghi "open")))))
+    (set-process-sentinel process #'magit-gh-issues-process-sentinel)))
 
 (defun magit-gh-issues-add-label ()
   "Add a label from a popup menu to the current issue and refresh."
