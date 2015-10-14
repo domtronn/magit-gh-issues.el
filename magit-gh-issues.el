@@ -227,7 +227,8 @@ of the comment."
 Providing an OFFSET will indent the region in the block."
   (propertize
    (magit-gh-issues-format-text-in-rectangle
-    (magit-gh-issues--unmarkdown-body body) 100 offset)
+    (magit-gh-issues--unmarkdown-body body)
+    (min 100 (- (window-width) 5)) offset)
    'face 'magit-dimmed))
 
 (defun magit-gh-issues-visit-issue ()
