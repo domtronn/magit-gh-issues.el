@@ -7,7 +7,8 @@
 ;; Package-Version: 20150926.2354
 ;; Version: 0.0.1
 ;; URL: https://github.com/domtronn/magit-gh-issues
-;; Package-Requires: ((emacs "24") (gh "0.9.1") (magit "2.1.0") (pcache "0.2.3") (s "1.6.1"))
+;; Package-Requires: ((emacs "24") (gh "0.9.1") (magit "2.1.0") (pcache "0.2.3")
+;; (s "1.6.1") (ac-emoji "0.02") (markdown-mode "2.0.0"))
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -209,9 +210,9 @@ The format should be `magit-gh-user-repo-label-name-face`"
 ID COMMENTS TITLE, If LABELS is non-nil, build the title will be
 appended with a propertized list of labels specific to that GitHub project."
   (let ((id-p (propertize (format "#%s" (number-to-string id)) 'face 'magit-tag))
-        (title-p (magit-gh-issues-format-text-in-rectangle title (- (window-width) 5) "\t\t\t"))
+        (title-p (magit-gh-issues-format-text-in-rectangle (format "%s %s" title (or labels "")) (- (window-width) 5) "\t\t\t"))
         (comments-p (propertize (if comments (format "%s" (length comments)) "") 'face 'magit-cherry-equivalent)))
-     (format "%s\t%s\t%s %s\n" id-p comments-p title-p (or labels ""))))
+     (format "%s\t%s\t%s\n" id-p comments-p title-p)))
 
 (defun magit-gh-issues--make-comment-heading-string (login time)
   "Create the propertized string used for comment headers.
