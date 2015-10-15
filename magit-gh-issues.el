@@ -35,6 +35,7 @@
 (require 'gh-issue-comments)
 (require 's)
 (require 'browse-url)
+(require 'ac-emoji)
 (require 'markdown-mode)
 
 ;;; Group Definitions
@@ -202,7 +203,20 @@ The format should be `magit-gh-user-repo-label-name-face`"
                    ("[_`*]\\(.*?\\)[*`_]" . "\\1")
                    ("" . ""))))
     (mapc (lambda (regexp) (setq body (replace-regexp-in-string (car regexp) (cdr regexp) body))) regexps))
-  (format "%s\n\n" body))
+  (format "%s\n\n" (magit-gh-issues--emoji-replace body)))
+
+(defun magit-gh-issues--emoji-replace (body)
+  "Replace emoji strings with the emoji characters in BODY."
+  (with-temp-buffer
+    (insert body)
+    (goto-char (point-min))
+    (while (and (< (point) (point-max))
+                (search-forward-regexp ":[a-z\-_]+:" (point-max) t))
+      (message "%s" (match-string 0))
+      (let ((emoji (plist-get (-first (lambda (item) (string= (plist-get item :key) (match-string 0))) ac-emoji--data) :codepoint)))
+        (replace-match (or emoji (match-string 1)))))
+    (buffer-string)))
+
 
 (defun magit-gh-issues--make-heading-string (id comments title &optional labels)
   "Create the propertized string used for issue headers using.
