@@ -35,6 +35,7 @@
 (require 's)
 (require 'browse-url)
 (require 'markdown-mode)
+(require 'auto-complete)
 
 ;;; Group Definitions
 (defgroup magit-gh-issues nil
@@ -62,6 +63,15 @@ By default, it performs `executable-find` to try and find ghi on your PATH."
 By default it calls `magit-gh-issues--unmarkdown-body` which removes markdown
 tags like underscores for italics and stars for bold to make the body
 more readable")
+
+(defvar ac-source-gh-issues '((candidates . ac-gh-issues--candidates)
+                               (prefix . "#\\S-*"))
+  "An `auto-complete-mode` source that is built of the issues.")
+
+(defvar ac-gh-issues--candidates '()
+  "A list of `popup-menu` items used for `ac-source-gh-issues`.
+It is built during the rendering/creation
+of the issues section in `magit` and gets reset between renders.")
 
 (defun magit-gh-issues--get-api ()
   "Get the `gh-issues-api` object."
@@ -228,6 +238,20 @@ Providing an OFFSET will indent the region in the block."
     (when (y-or-n-p (format "Would you like to open %s in a browser? " url))
       (browse-url url))))
 
+;;;###autoload
+(defun ac-gh-issues-setup ()
+  "Setup the GitHub issues auto completion by add sources."
+  (interactive)
+  (add-to-list 'ac-sources 'ac-source-gh-issues))
+
+(defun magit-gh-issues--reset-ac-candidates ()
+  "Reset the variable `ac-gh-issues--candidates` to an empty list."
+  (setq ac-gh-issues--candidates '()))
+
+(defun magit-gh-issues--append-ac-candidate (s summary)
+  "Add a `popup-menu-item` S with SUMMARY to the list of ac candidates."
+  (add-to-list 'ac-gh-issues--candidates (popup-make-item s :summary summary)))
+
 (defun magit-gh-issues-reload ()
   "Reload the issues by updating the cache of issues and labels.
 It refreshes magit status to re-render the issues section."
@@ -376,6 +400,8 @@ It refreshes magit status to re-render the issues section."
          (labels-cached? (magit-gh-labels-cached-p api user proj))
          (labels (when labels-cached? (magit-gh-issues-get-labels)))
          (label-string nil))
+
+    (magit-gh-issues--reset-ac-candidates)
     
     (when (> (length labels) 0)
       (magit-gh-issues--make-label-faces labels user proj))
@@ -395,6 +421,9 @@ It refreshes magit status to re-render the issues section."
               (magit-insert (magit-gh-issues--make-heading-string
                              id comments (oref issue :title) label-string))
               (magit-insert-heading)
+
+              (magit-gh-issues--append-ac-candidate (format "#%s" id) (oref issue :title))
+
               (when body
                 (magit-insert (magit-gh-issues--make-body-string body)))
               (when comments

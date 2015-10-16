@@ -39,6 +39,16 @@ ghi config --auth
 ```
 You need to authorize `ghi` so that it can work with _all_ your repos
 
+##### Auto Completion
+
+This package provides auto completion for issue numbers when in git commit modes so that you can easily reference them from the commit. To enable this, add the following to you `init.el`
+```lisp
+(add-hook 'git-commit-mode-hook 'ac-source-gh-issues)
+```
+Then when writing a commit, typing <kbd>#</kbd> followed by the first number of an issue will provide a prompt with open issues and their title.
+
+Selecting an issue will only insert the issue number.
+
 #### Planned Features
 - [x] Ability to open Issues
 - [x] Ability to close Issues
@@ -52,5 +62,5 @@ You need to authorize `ghi` so that it can work with _all_ your repos
     - Unsure whether this should be mixed in with the comments or a separate section
     - Whether we should display _all_ events or just the references
     - [ ] Link through to commit references?
-- [ ] Auto completion for `git-commit-mode` which let's you refernce issues in commits
+- [x] Auto completion for `git-commit-mode` which let's you refernce issues in commits
 - [ ] Hook into `magit-popup` to display command prompts for issues
