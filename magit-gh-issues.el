@@ -255,12 +255,6 @@ It refreshes magit status to re-render the issues section."
      api (gh-object-list-reader (oref api label-cls)) "DELETE"
      (format "/repos/%s/%s/issues/%s/labels/%s" user repo issue-id label))))
 
-(defun magit-gh-issues-start-ghi (&rest args)
-  "Use magits process to run ghi ARGS with an editor."
-  (run-hooks 'magit-pre-start-git-hook)
-  (apply #'magit-start-process magit-gh-issues-ghi-executable nil
-         (-flatten args)))
-
 (defun magit-gh-issues-process-sentinel (process event)
   "Default sentinel used by `magit-start-process' around PROCESS and EVENT."
   (when (memq (process-status process) '(exit signal))
@@ -319,29 +313,28 @@ It refreshes magit status to re-render the issues section."
   (magit-jump-to-issues)
   (magit-section-hide-children (magit-current-section)))
 
-(defun magit-gh-issues-open-issue ()
-  "Open an issue using ghi."
-  (interactive)
+(defun magit-gh-issues--start-ghi (&rest args)
+  "Start an editor process by calling `magit-gh-issues-start-ghi` with ARGS."
   (if magit-gh-issues-ghi-executable
       (let ((process
              (with-editor "GIT_EDITOR"
                (let ((magit-process-popup-time -1))
-                 (magit-gh-issues-start-ghi "open")))))
-        (set-process-sentinel process #'magit-gh-issues-process-sentinel))
+                 (run-hooks 'magit-pre-start-git-hook)
+                 (apply #'magit-start-process magit-gh-issues-ghi-executable nil (-flatten args))))))
+        (set-process-sentinel process 'magit-gh-issues-process-sentinel))
     (error "Could not find the `ghi` executable.  Have you got it installed?")))
+
+(defun magit-gh-issues-open-issue ()
+  "Open an issue using ghi."
+  (interactive)
+  (magit-gh-issues--start-ghi "open"))
 
 (defun magit-gh-issues-comment-issue ()
   "Comment on the current issue using ghi."
   (interactive)
-  (if magit-gh-issues-ghi-executable
-      (let* ((issue (cdr (assoc 'issue (magit-section-value (magit-current-section)))))
-             (id (oref issue :number))
-             (process
-              (with-editor "GIT_EDITOR"
-                (let ((magit-process-popup-time -1))
-                  (magit-gh-issues-start-ghi "comment" (format "%s" id))))))
-        (set-process-sentinel process #'magit-gh-issues-process-sentinel))
-    (error "Could not find the `ghi` executable.  Have you got it installed?")))
+  (let* ((issue (cdr (assoc 'issue (magit-section-value (magit-current-section)))))
+         (id (oref issue :number)))
+    (magit-gh-issues--start-ghi "comment" (format "%s" id))))
 
 (defun magit-gh-issues-add-label ()
   "Add a label from a popup menu to the current issue and refresh."
