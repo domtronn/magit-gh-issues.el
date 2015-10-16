@@ -313,6 +313,12 @@ It refreshes magit status to re-render the issues section."
 
 (magit-define-section-jumper issues "Issues")
 
+(defun magit-gh-issues-collapse-issues ()
+  "Collapse the issues section."
+  (interactive)
+  (magit-jump-to-issues)
+  (magit-section-hide-children (magit-current-section)))
+
 (defun magit-gh-issues-open-issue ()
   "Open an issue using ghi."
   (interactive)
@@ -451,6 +457,7 @@ It refreshes magit status to re-render the issues section."
 
 (define-key magit-status-mode-map (kbd "Ig") 'magit-gh-issues-reload)
 (define-key magit-status-mode-map (kbd "Io") 'magit-gh-issues-open-issue)
+(define-key magit-status-mode-map (kbd "Iz") 'magit-gh-issues-collapse-issues)
 
 ;;;###autoload
 (define-minor-mode magit-gh-issues-mode "GitHub Issues support for Magit using gh"
