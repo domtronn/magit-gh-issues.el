@@ -260,19 +260,19 @@ It refreshes magit status to re-render the issues section."
   (when (memq (process-status process) '(exit signal))
     (setq event (substring event 0 -1))
     (when (string-match "^finished" event)
-      (message (concat (capitalize (process-name process)) " finished")))
-    (magit-process-finish process)
-    (when (eq process magit-this-process)
-      (setq magit-this-process nil))
-    (unless (process-get process 'inhibit-refresh)
-      (let ((inhibit-magit-revert (process-get process 'inhibit-revert))
-            (command-buf (process-get process 'command-buf)))
-        (if (buffer-live-p command-buf)
-            (with-current-buffer command-buf
-              (magit-gh-issues-reload))
-          (with-temp-buffer
-            (setq default-directory (process-get process 'default-dir))
-            (magit-gh-issues-reload)))))))
+        (message (concat (capitalize (process-name process)) " finished"))
+        (magit-process-finish process)
+        (when (eq process magit-this-process)
+          (setq magit-this-process nil))
+        (unless (process-get process 'inhibit-refresh)
+          (let ((inhibit-magit-revert (process-get process 'inhibit-revert))
+                (command-buf (process-get process 'command-buf)))
+            (if (buffer-live-p command-buf)
+                (with-current-buffer command-buf
+                  (magit-gh-issues-reload))
+              (with-temp-buffer
+                (setq default-directory (process-get process 'default-dir))
+                (magit-gh-issues-reload))))))))
 
 (define-derived-mode ghi-issue-mode nil "Git Issue"
   "Major mode for editing GHI Issue files."
