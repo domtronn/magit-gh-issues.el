@@ -47,3 +47,8 @@ You need to authorize `ghi` so that it can work with _all_ your repos
 - [ ] User Images next to comments
 - [ ] Ability to see Assignees
 - [ ] Assign people to issues
+- [ ] Show events in the issue break down
+	- Unsure whether this should be mixed in with the comments or a separate section
+	- Whether we should display _all_ events or just the references
+	- [ ] Link through to commit references?
+- [ ] Auto complete mode for `git-commit-mode` which let's you refernce issues in commits
