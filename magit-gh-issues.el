@@ -274,12 +274,9 @@ It refreshes magit status to re-render the issues section."
                 (setq default-directory (process-get process 'default-dir))
                 (magit-gh-issues-reload))))))))
 
-(define-derived-mode ghi-issue-mode nil "Git Issue"
+(define-derived-mode ghi-issue-mode ghi-comment-mode "Git Issue"
   "Major mode for editing GHI Issue files."
   :group 'magit
-  (add-hook 'with-editor-pre-cancel-hook
-            '(lambda () (with-current-buffer (buffer-name) (goto-char (point-min)) (flush-lines ""))) nil t)
-  (with-editor-mode 1)
   (git-commit-setup-font-lock))
 
 (define-derived-mode ghi-comment-mode markdown-mode "Git Comment"
