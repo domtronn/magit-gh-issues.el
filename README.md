@@ -19,6 +19,7 @@ Key Binding | Command | Effect
 --- | --- | ---
 <kbd>I o</kbd> | `magit-gh-issues-open-issue` | Open a new issue and refresh the list of issues
 <kbd>I g</kbd> | `magit-gh-issues-reload` | Purge the cache of issues and refetch them for the current project
+<kbd>I z</kbd> | `magit-gh-issues-collapse-issues` | Collapse all of the currently opened issues
 
 ##### Context Sensitive bindings
 
@@ -52,3 +53,4 @@ You need to authorize `ghi` so that it can work with _all_ your repos
     - Whether we should display _all_ events or just the references
     - [ ] Link through to commit references?
 - [ ] Auto completion for `git-commit-mode` which let's you refernce issues in commits
+- [ ] Hook into `magit-popup` to display command prompts for issues
