@@ -51,10 +51,19 @@ By default, it performs `executable-find` to try and find ghi on your PATH."
   :group 'magit-gh-issues
   :type 'string)
 
+;;; Face Definitions
 (defface magit-gh-issues-login-face
   '((t :weight bold))
   "Face for GitHub logins/usernames"
   :group 'magit-faces)
+
+;;; Variable Definitions
+(defvar magit-gh-issues-body-format-hook '(magit-gh-issues--unmarkdown-body)
+  "A list of hooks to run to format the body text of issues and comments.
+
+By default it calls `magit-gh-issues--unmarkdown-body` which removes markdown
+tags like underscores for italics and stars for bold to make the body
+more readable")
 
 (defun magit-gh-issues--get-api ()
   "Get the `gh-issues-api` object."
@@ -241,10 +250,11 @@ of the comment."
 (defun magit-gh-issues--make-body-string (body &optional offset)
   "Create the propertized string used for the issue BODY.
 Providing an OFFSET will indent the region in the block."
+  (mapc (lambda (f) (setq body (funcall f body)))
+        magit-gh-issues-body-format-hook)
   (propertize
-   (magit-gh-issues-format-text-in-rectangle
-    (magit-gh-issues--unmarkdown-body body)
-    (min 100 (- (window-width) 5)) offset)
+   (magit-gh-issues-format-text-in-rectangle body
+     (min 100 (- (window-width) 5)) offset)
    'face 'magit-dimmed))
 
 (defun magit-gh-issues-visit-issue ()
@@ -252,7 +262,7 @@ Providing an OFFSET will indent the region in the block."
   (interactive)
   (let* ((issue (cdr (assoc 'issue (magit-section-value (magit-current-section)))))
          (url (oref issue html-url)))
-    (when (y-or-n-p (format "Would you like to open %s in a browser?" url))
+    (when (y-or-n-p (format "Would you like to open %s in a browser? " url))
       (browse-url url))))
 
 (defun magit-gh-issues-reload ()
