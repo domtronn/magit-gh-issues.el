@@ -277,6 +277,8 @@ It refreshes magit status to re-render the issues section."
 (define-derived-mode ghi-issue-mode nil "Git Issue"
   "Major mode for editing GHI Issue files."
   :group 'magit
+  (add-hook 'with-editor-pre-cancel-hook
+            '(lambda () (with-current-buffer (buffer-name) (goto-char (point-min)) (flush-lines ""))) nil t)
   (with-editor-mode 1)
   (git-commit-setup-font-lock))
 
