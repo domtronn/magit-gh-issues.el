@@ -7,8 +7,7 @@
 ;; Package-Version: 20150926.2354
 ;; Version: 0.0.1
 ;; URL: https://github.com/domtronn/magit-gh-issues
-;; Package-Requires: ((emacs "24") (gh "0.9.1") (magit "2.1.0") (pcache "0.2.3")
-;; (s "1.6.1") (ac-emoji "0.02") (markdown-mode "2.0.0"))
+;; Package-Requires: ((emacs "24") (gh "0.9.1") (magit "2.1.0") (pcache "0.2.3") (s "1.6.1") (markdown-mode "2.0.0"))
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -35,7 +34,6 @@
 (require 'gh-issue-comments)
 (require 's)
 (require 'browse-url)
-(require 'ac-emoji)
 (require 'markdown-mode)
 
 ;;; Group Definitions
@@ -160,28 +158,6 @@ The format should be `magit-gh-user-repo-label-name-face`"
   "Check whether labels have been cached in API for USER & PROJ."
   (magit-gh--cached-p "labels" api user proj))
 
-
-(defvar magit-issue-section-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map "\r" 'magit-gh-issues-visit-issue)
-    (define-key map [C-return] 'magit-gh-issues-visit-issue)
-    (define-key map "a" 'magit-gh-issues-add-label)
-    (define-key map "c" 'magit-gh-issues-comment-issue)
-    (define-key map "r" 'magit-gh-issues-remove-label)
-    (define-key map "k" 'magit-gh-issues-close-issue)
-    map)
-  "Keymap for `issues` section.")
-
-(defvar magit-comment-section-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map "\r" 'magit-gh-issues-visit-issue)
-    (define-key map [C-return] 'magit-gh-issues-visit-issue)
-    (define-key map "c" 'magit-gh-issues-comment-issue)
-    map)
-  "Keymap for `comment` section.")
-
-(magit-define-section-jumper issues "Issues")
-
 (defun magit-gh-issues--make-label-faces (labels user proj)
   "Create a face for each label in LABELS namespaced by USER & PROJ."
   (dolist (label labels)
@@ -212,20 +188,7 @@ The format should be `magit-gh-user-repo-label-name-face`"
                    ("[_`*]\\(.*?\\)[*`_]" . "\\1")
                    ("" . ""))))
     (mapc (lambda (regexp) (setq body (replace-regexp-in-string (car regexp) (cdr regexp) body))) regexps))
-  (format "%s\n\n" (magit-gh-issues--emoji-replace body)))
-
-(defun magit-gh-issues--emoji-replace (body)
-  "Replace emoji strings with the emoji characters in BODY."
-  (with-temp-buffer
-    (insert body)
-    (goto-char (point-min))
-    (while (and (< (point) (point-max))
-                (search-forward-regexp ":[a-z\-_]+:" (point-max) t))
-      (message "%s" (match-string 0))
-      (let ((emoji (plist-get (-first (lambda (item) (string= (plist-get item :key) (match-string 0))) ac-emoji--data) :codepoint)))
-        (replace-match (or emoji (match-string 1)))))
-    (buffer-string)))
-
+  (format "%s\n\n" body))
 
 (defun magit-gh-issues--make-heading-string (id comments title &optional labels)
   "Create the propertized string used for issue headers using.
@@ -348,6 +311,8 @@ It refreshes magit status to re-render the issues section."
         (gh-issues-issue-update (magit-gh-issues--get-api) (car repo) (cdr repo) id issue)
         (magit-gh-issues-reload)))))
 
+(magit-define-section-jumper issues "Issues")
+
 (defun magit-gh-issues-open-issue ()
   "Open an issue using ghi."
   (interactive)
@@ -463,6 +428,26 @@ It refreshes magit status to re-render the issues section."
       (search-forward "\n" (+ (point) width) t)
       (goto-char (+ (point) width)))
     (format "%s" (buffer-substring (point-min) (point-max)))))
+
+;;; Keybinding definitions
+(defvar magit-issue-section-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map "\r" 'magit-gh-issues-visit-issue)
+    (define-key map [C-return] 'magit-gh-issues-visit-issue)
+    (define-key map "a" 'magit-gh-issues-add-label)
+    (define-key map "c" 'magit-gh-issues-comment-issue)
+    (define-key map "r" 'magit-gh-issues-remove-label)
+    (define-key map "k" 'magit-gh-issues-close-issue)
+    map)
+  "Keymap for `issues` section.")
+
+(defvar magit-comment-section-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map "\r" 'magit-gh-issues-visit-issue)
+    (define-key map [C-return] 'magit-gh-issues-visit-issue)
+    (define-key map "c" 'magit-gh-issues-comment-issue)
+    map)
+  "Keymap for `comment` section.")
 
 (define-key magit-status-mode-map (kbd "Ig") 'magit-gh-issues-reload)
 (define-key magit-status-mode-map (kbd "Io") 'magit-gh-issues-open-issue)
