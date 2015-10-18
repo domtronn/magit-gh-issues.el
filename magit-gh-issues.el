@@ -478,9 +478,15 @@ It refreshes magit status to re-render the issues section."
     map)
   "Keymap for `comment` section.")
 
-(define-key magit-status-mode-map (kbd "Ig") 'magit-gh-issues-reload)
-(define-key magit-status-mode-map (kbd "Io") 'magit-gh-issues-open-issue)
-(define-key magit-status-mode-map (kbd "Iz") 'magit-gh-issues-collapse-issues)
+(define-key magit-status-mode-map (kbd "I") 'magit-gh-issues-popup)
+
+;;;###autoload (autoload 'magit-gh-issues-popup "magit" nil t)
+(magit-define-popup magit-gh-issues-popup
+  "Popup console for GitHub Issues commands."
+  'magit-commands nil nil
+  :actions  '((?o "Open"    magit-gh-issues-open-issue)
+              (?g "Reload"  magit-gh-issues-reload)
+              (?z "hide"   magit-gh-issues-collapse-issues)))
 
 ;;;###autoload
 (define-minor-mode magit-gh-issues-mode "GitHub Issues support for Magit using gh"
