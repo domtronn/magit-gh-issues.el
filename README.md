@@ -49,7 +49,15 @@ Then when writing a commit, typing <kbd>#</kbd> followed by the first number of 
 
 Selecting an issue will only insert the issue number.
 
-#### Planned Features
+##### Philosophy of Functionality
+My main goal with this project is to make it easier for users to access and interact with GitHub issues from within `magit`. However, I'm not looking to recreate GitHub from within `magit`, there's a lot of metadata and information associated with issues, _e.g._ Assignees, Milestones, Labels, but I don't want to overload the user with information.
+
+I want to make referenceable things _(like the issue numbers)_ readily available and provide an _at a glance_ overview of current state of project.
+
+This is why I will probably deprioritize some of the functionality people may be familiar with in GitHub.
+
+#### Planned Features####
+
 - [x] Ability to open Issues
 - [x] Ability to close Issues
 - [x] Ability to add/remove labels
@@ -65,5 +73,8 @@ Selecting an issue will only insert the issue number.
 - [x] Auto completion for `git-commit-mode` which let's you refernce issues in commits
 - [x] Hook into `magit-popup` to display command prompts for issues
 - [ ] Display a list of Milestones
+- [ ] Ability to create Milestones
+- [ ] Ability to close Milestones
+- [ ] Ability to assign Milestones to issues
 - [ ] Potentially filtering/grouping issues _by_ milestone
 - [ ] Display milestone as part of the issue _(probably on expand?)_
