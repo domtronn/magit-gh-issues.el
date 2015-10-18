@@ -63,4 +63,7 @@ Selecting an issue will only insert the issue number.
     - Whether we should display _all_ events or just the references
     - [ ] Link through to commit references?
 - [x] Auto completion for `git-commit-mode` which let's you refernce issues in commits
-- [ ] Hook into `magit-popup` to display command prompts for issues
+- [x] Hook into `magit-popup` to display command prompts for issues
+- [ ] Display a list of Milestones
+- [ ] Potentially filtering/grouping issues _by_ milestone
+- [ ] Display milestone as part of the issue _(probably on expand?)_
