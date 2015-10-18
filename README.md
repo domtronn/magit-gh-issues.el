@@ -43,7 +43,7 @@ You need to authorize `ghi` so that it can work with _all_ your repos
 
 This package provides auto completion for issue numbers when in git commit modes so that you can easily reference them from the commit. To enable this, add the following to you `init.el`
 ```lisp
-(add-hook 'git-commit-mode-hook 'ac-source-gh-issues)
+(add-hook 'git-commit-mode-hook 'ac-source-gh-setup)
 ```
 Then when writing a commit, typing <kbd>#</kbd> followed by the first number of an issue will provide a prompt with open issues and their title.
 
