@@ -484,9 +484,18 @@ It refreshes magit status to re-render the issues section."
 (magit-define-popup magit-gh-issues-popup
   "Popup console for GitHub Issues commands."
   'magit-commands nil nil
-  :actions  '((?o "Open"    magit-gh-issues-open-issue)
-              (?g "Reload"  magit-gh-issues-reload)
-              (?z "hide"   magit-gh-issues-collapse-issues)))
+  :actions  '("Global Commands"
+              (?o "Open a new Issue"    magit-gh-issues-open-issue)
+              (?z "Collapse Issues section"   magit-gh-issues-collapse-issues)
+              (?g "Reload all issues from GitHub"  magit-gh-issues-reload)
+              "Local Commands (run whilst focusing on an issue)"
+              (?c "Comment on current Issue" magit-gh-issues-comment-issue)
+              (?k "Close current Issue" magit-gh-issues-comment-issue)
+              (?a "Add Label" magit-gh-issues-add-label)
+              (?r "Remove Label"magit-gh-issues-remove-label)
+              "\
+ RET    Visit the current issue" nil)
+  :max-action-columns 4)
 
 ;;;###autoload
 (define-minor-mode magit-gh-issues-mode "GitHub Issues support for Magit using gh"
