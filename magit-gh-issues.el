@@ -239,7 +239,7 @@ of the comment."
   (let* ((login-p (propertize (format "@%s" login) 'face 'magit-gh-issues-login-face))
          (time-string (format-time-string "%H:%M, %a %d %b, %Y" (date-to-time time)))
          (time-p (propertize time-string 'face 'magit-tag)))
-    (format "\t%s - %s" login-p time-string)))
+    (format "  %s - %s" login-p time-string)))
 
 (defun magit-gh-issues--make-body-string (body &optional offset)
   "Create the propertized string used for the issue BODY.
@@ -456,7 +456,7 @@ It refreshes magit status to re-render the issues section."
                           (time (oref comment :created_at)))
                       (magit-insert-section (comment `((issue . ,issue)))
                         (magit-insert-heading (magit-gh-issues--make-comment-heading-string user time))
-                        (magit-insert (concat "\t\t" (magit-gh-issues--make-body-string body "\t\t")))))))
+                        (magit-insert (concat "    " (magit-gh-issues--make-body-string body "    ")))))))
                 (magit-insert "\n")))))
         (when (> (length issues) 0)
           (insert "\n") t)
@@ -467,7 +467,7 @@ It refreshes magit status to re-render the issues section."
   "Wrap a block of TEXT with a maximum WIDTH and INDENT."
   (with-temp-buffer
     (insert
-     (replace-regexp-in-string "\t\t$" ""
+     (replace-regexp-in-string "    $" ""
                                (replace-regexp-in-string "\n" (concat "\n" indent)
                                        text)))
     (goto-char (+ (point-min) width))
