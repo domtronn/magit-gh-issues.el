@@ -50,17 +50,21 @@ By default, it performs `executable-find` to try and find ghi on your PATH."
   :group 'magit-gh-issues
   :type 'string)
 
-(defcustom magit-gh-issues--issues-format-width 5
+(defcustom magit-gh-issues--issues-format-width 4
   "The maximum width of the issue numbers.
 
-E.g.  With padding 5, the issue number 26 will appear as '#26   '"
+E.g.  With padding 4, the issue number 26 will appear as '#26  '
+
+I suggest the following customizations:
+  4 for less than 1000 issues
+  3 for less than 100 issues"
   :group 'magit-gh-issues
   :type 'number)
 
-(defcustom magit-gh-issues--comments-format-width 4
+(defcustom magit-gh-issues--comments-format-width 3
   "The maximum width of the comments string.
 
-E.g.  With padding 4, if there were 20 comments the heading will appear as '20  '"
+E.g.  With padding 3, if there were 20 comments the heading will appear as '20 '"
   :group 'magit-gh-issues
   :type 'number)
 
