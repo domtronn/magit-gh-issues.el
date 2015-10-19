@@ -223,7 +223,9 @@ appended with a propertized list of labels specific to that GitHub project."
          (id-padding (make-string (max (- magit-gh-issues--issues-format-width (length id-s)) 1) ? ))
          (id-p (propertize (format "#%s" id-s) 'face 'magit-tag))
 
-         (title-p (magit-gh-issues-format-text-in-rectangle (format "%s %s" title (or labels "")) (- (window-width) 5) "\t\t\t"))
+         (title-p (magit-gh-issues-format-text-in-rectangle (format "%s %s" title (or labels ""))
+                                             (- (window-width) 5)
+                                             (make-string (+ 1 magit-gh-issues--comments-format-width magit-gh-issues--issues-format-width) ? )))
 
          (comments-s (if comments (number-to-string (length comments)) nil))
          (comments-padding (make-string (max (- magit-gh-issues--comments-format-width (length comments-s)) 1) ? ))
