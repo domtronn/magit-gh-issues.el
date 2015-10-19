@@ -394,21 +394,22 @@ It refreshes magit status to re-render the issues section."
   (let ((labels (mapcar
                  (lambda (l) (list (cons 'name (format "%s" (gh-issues--label-name l)))))
                  (magit-gh-issues-get-labels))))
-    (magit-gh-issues--call-label-api labels 'magit-gh-issues--api-add-label)))
+    (magit-gh-issues--call-label-api labels "Add" 'magit-gh-issues--api-add-label)))
 
 (defun magit-gh-issues-remove-label ()
   "Remove a label from a popup menu to the current issue and refresh."
   (interactive)
   (let ((labels (cdr (assoc 'labels (magit-section-value (magit-current-section))))))
     (when labels
-      (magit-gh-issues--call-label-api labels 'magit-gh-issues--api-remove-label))))
+      (magit-gh-issues--call-label-api labels "Remove" 'magit-gh-issues--api-remove-label))))
 
-(defun magit-gh-issues--call-label-api (labels f)
-  "Prompt LABELS and perform the API call F for the labels of the current issue."
+(defun magit-gh-issues--call-label-api (labels prompt-prefix f)
+  "Prompt LABELS with PROMPT-PREFIX and perform the API call F for the labels of the current issue."
   (when (eq 'issue (magit-section-type (magit-current-section)))
     (let* ((repo (magit-gh-issues--guess-repo))
            (prompt (magit-gh-issues--label-list labels (car repo) (cdr repo))))
-      (let* ((label (replace-regexp-in-string "^ \\(.*\\) $" "\\1" (format "%s" (completing-read "Add Tag: " prompt))))
+      (let* ((label-p (completing-read (format "%s Label: " prompt-prefix) prompt))
+             (label (replace-regexp-in-string "^ \\(.*\\) $" "\\1" (format "%s" label-p)))
              (issue (cdr (assoc 'issue (magit-section-value (magit-current-section)))))
              (url (oref issue :url))
              (id (oref issue :number)))
