@@ -50,6 +50,20 @@ By default, it performs `executable-find` to try and find ghi on your PATH."
   :group 'magit-gh-issues
   :type 'string)
 
+(defcustom magit-gh-issues--issues-format-width 5
+  "The maximum width of the issue numbers.
+
+E.g.  With padding 5, the issue number 26 will appear as '#26   '"
+  :group 'magit-gh-issues
+  :type 'number)
+
+(defcustom magit-gh-issues--comments-format-width 4
+  "The maximum width of the comments string.
+
+E.g.  With padding 4, if there were 20 comments the heading will appear as '20  '"
+  :group 'magit-gh-issues
+  :type 'number)
+
 ;;; Face Definitions
 (defface magit-gh-issues-login-face
   '((t :weight bold))
@@ -205,10 +219,17 @@ The format should be `magit-gh-user-repo-label-name-face`"
 
 ID COMMENTS TITLE, If LABELS is non-nil, build the title will be
 appended with a propertized list of labels specific to that GitHub project."
-  (let ((id-p (propertize (format "#%s" (number-to-string id)) 'face 'magit-tag))
-        (title-p (magit-gh-issues-format-text-in-rectangle (format "%s %s" title (or labels "")) (- (window-width) 5) "\t\t\t"))
-        (comments-p (propertize (if comments (format "%s" (length comments)) "") 'face 'magit-cherry-equivalent)))
-     (format "%s\t%s\t%s\n" id-p comments-p title-p)))
+  (let* ((id-s (number-to-string id))
+         (id-padding (make-string (max (- magit-gh-issues--issues-format-width (length id-s)) 1) ? ))
+         (id-p (propertize (format "#%s" id-s) 'face 'magit-tag))
+
+         (title-p (magit-gh-issues-format-text-in-rectangle (format "%s %s" title (or labels "")) (- (window-width) 5) "\t\t\t"))
+
+         (comments-s (if comments (number-to-string (length comments)) nil))
+         (comments-padding (make-string (max (- magit-gh-issues--comments-format-width (length comments-s)) 1) ? ))
+         (comments-p (propertize (if comments (format "%s" (length comments)) "") 'face 'magit-cherry-equivalent)))
+
+    (format "%s%s%s%s%s\n" id-p id-padding comments-p comments-padding title-p)))
 
 (defun magit-gh-issues--make-comment-heading-string (login time)
   "Create the propertized string used for comment headers.
@@ -402,7 +423,7 @@ It refreshes magit status to re-render the issues section."
          (label-string nil))
 
     (magit-gh-issues--reset-ac-candidates)
-    
+
     (when (> (length labels) 0)
       (magit-gh-issues--make-label-faces labels user proj))
 
@@ -515,5 +536,6 @@ It refreshes magit status to re-render the issues section."
 (provide 'magit-gh-issues)
 ;; Local Variables:
 ;; indent-tabs-mode: nil
+;; eval: (nameless-mode 1)
 ;; End:
 ;;; magit-gh-issues.el ends here
