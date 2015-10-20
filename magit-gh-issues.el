@@ -242,7 +242,7 @@ appended with a propertized list of labels specific to that GitHub project."
 
          (title-p (magit-gh-issues-format-text-in-rectangle (format "%s %s" title (or labels ""))
                                              (- (window-width) 5)
-                                             (make-string (+ 1 magit-gh-issues--comments-format-width magit-gh-issues--issues-format-width) ? )))
+                                             (make-string (+ 4 magit-gh-issues--comments-format-width magit-gh-issues--issues-format-width) ? )))
 
          (comments-s (if comments (number-to-string (length comments)) nil))
          (comments-padding (make-string (max (- magit-gh-issues--comments-format-width (length comments-s)) 1) ? ))
@@ -477,10 +477,11 @@ It refreshes magit status to re-render the issues section."
                   (dolist (comment comments)
                     (let ((body (oref comment :body))
                           (user (oref (oref comment :user) :login))
-                          (time (oref comment :created_at)))
+                          (time (oref comment :created_at))
+                          (comment-indent (make-string 4 ? )))
                       (magit-insert-section (comment `((issue . ,issue)))
                         (magit-insert-heading (magit-gh-issues--make-comment-heading-string user time))
-                        (magit-insert (concat "    " (magit-gh-issues--make-body-string body "    ")))))))
+                        (magit-insert (concat comment-indent (magit-gh-issues--make-body-string body comment-indent)))))))
                 (magit-insert "\n")))))
         (when (> (length issues) 0)
           (insert "\n") t)
