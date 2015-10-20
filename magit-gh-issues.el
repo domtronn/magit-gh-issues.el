@@ -132,6 +132,18 @@ The format should be `magit-gh-user-repo-label-name-face`"
    "[. ]" "-"
    (format "magit-gh-%s-%s-label-%s-face" user proj name)))
 
+(defun magit-gh-issues-get-avatar (url)
+  "Get, and cache, the users avatar URL."
+  (let ((url (concat url "&size=" (number-to-string (/ (face-attribute 'default :height) 10)))))
+    (if (gravatar-cache-expired url)
+        (with-current-buffer (url-retrieve-synchronously url)
+          (let ((img (gravatar-data->image)))
+            (propertize "*" 'display `((,@img :ascent center :relief 1)))))
+      (with-temp-buffer
+        (mm-disable-multibyte)
+        (url-cache-extract (url-cache-create-filename url))
+        (gravatar-data->image)))))
+
 (defun magit-gh-issues-get-labels ()
   "Get the raw labels data from the gh library for repo."
   (let* ((api (magit-gh-issues--get-api))
@@ -443,10 +455,14 @@ It refreshes magit status to re-render the issues section."
                  (body (oref issue :body))
                  (url (oref issue :html-url))
                  (labels (oref issue :labels))
+                 (avatar-url (oref (oref issue :assignee) :avatar-url))
                  (label-string (when labels
                                  (magit-gh-issues--make-label-string labels user proj)))
                  (comments (magit-gh-issues-get-issue-comments id)))
             (magit-insert-section (issue `((issue . ,issue) (labels . ,labels)) t)
+              (insert (if avatar-url
+                          (magit-gh-issues-get-avatar avatar-url)
+                        "  ") " ")
               (magit-insert (magit-gh-issues--make-heading-string
                              id comments (oref issue :title) label-string))
               (magit-insert-heading)
