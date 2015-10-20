@@ -36,6 +36,7 @@
 (require 'browse-url)
 (require 'markdown-mode)
 (require 'auto-complete)
+(require 'gravatar)
 
 ;;; Group Definitions
 (defgroup magit-gh-issues nil
