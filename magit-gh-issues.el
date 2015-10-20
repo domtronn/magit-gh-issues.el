@@ -231,24 +231,28 @@ The format should be `magit-gh-user-repo-label-name-face`"
     (mapc (lambda (regexp) (setq body (replace-regexp-in-string (car regexp) (cdr regexp) body))) regexps))
   (format "%s\n\n" body))
 
-(defun magit-gh-issues--make-heading-string (id comments title &optional labels)
-  "Create the propertized string used for issue headers using.
 
-ID COMMENTS TITLE, If LABELS is non-nil, build the title will be
-appended with a propertized list of labels specific to that GitHub project."
+(defun magit-gh-issues--make-pre-heading-string (id comments)
+  "Create the propertized string for the ID & COMMENTS of an issue."
   (let* ((id-s (number-to-string id))
          (id-padding (make-string (max (- magit-gh-issues--issues-format-width (length id-s)) 1) ? ))
          (id-p (propertize (format "#%s" id-s) 'face 'magit-tag))
-
-         (title-p (magit-gh-issues-format-text-in-rectangle (format "%s %s" title (or labels ""))
-                                             (- (window-width) 5)
-                                             (make-string (+ 4 magit-gh-issues--comments-format-width magit-gh-issues--issues-format-width) ? )))
 
          (comments-s (if comments (number-to-string (length comments)) nil))
          (comments-padding (make-string (max (- magit-gh-issues--comments-format-width (length comments-s)) 1) ? ))
          (comments-p (propertize (if comments (format "%s" (length comments)) "") 'face 'magit-cherry-equivalent)))
 
-    (format "%s%s%s%s%s\n" id-p id-padding comments-p comments-padding title-p)))
+    (concat id-p id-padding comments-p comments-padding)))
+
+(defun magit-gh-issues--make-heading-string (title &optional labels)
+  "Create the propertized string used for issue headers using.
+
+TITLE, If LABELS is non-nil, build the title will be
+appended with a propertized list of labels specific to that GitHub project."
+  (let* ((title-p (magit-gh-issues-format-text-in-rectangle (format "%s %s" title (or labels ""))
+                                             (- (window-width) 5)
+                                             (make-string (+ 4 magit-gh-issues--comments-format-width magit-gh-issues--issues-format-width) ? ))))
+    (concat title-p "\n")))
 
 (defun magit-gh-issues--make-comment-heading-string (login time)
   "Create the propertized string used for comment headers.
@@ -460,11 +464,11 @@ It refreshes magit status to re-render the issues section."
                                  (magit-gh-issues--make-label-string labels user proj)))
                  (comments (magit-gh-issues-get-issue-comments id)))
             (magit-insert-section (issue `((issue . ,issue) (labels . ,labels)) t)
+              (magit-insert (magit-gh-issues--make-pre-heading-string id comments))
               (insert (if avatar-url
                           (magit-gh-issues-get-avatar avatar-url)
                         "  ") " ")
-              (magit-insert (magit-gh-issues--make-heading-string
-                             id comments (oref issue :title) label-string))
+              (magit-insert (magit-gh-issues--make-heading-string (oref issue :title) label-string))
               (magit-insert-heading)
 
               (magit-gh-issues--append-ac-candidate (format "#%s" id) (oref issue :title))
