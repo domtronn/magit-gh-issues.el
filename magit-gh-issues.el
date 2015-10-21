@@ -523,8 +523,9 @@ It refreshes magit status to re-render the issues section."
             (magit-insert-section (issue `((issue . ,issue) (labels . ,labels)) t)
               (let ((templates (split-string magit-gh-issues-title-template-string "%avatar%")))
                 (insert (magit-gh-issues--make-heading-string (car templates) id (oref issue :title) comments labels))
-                (insert (if avatar-url (magit-gh-issues-get-avatar avatar-url (upcase (oref assignee :login))) "  "))
-                (insert (magit-gh-issues--make-heading-string (cadr templates) id (oref issue :title) comments  labels)))
+                (when (cadr templates)
+                  (insert (if avatar-url (magit-gh-issues-get-avatar avatar-url (upcase (oref assignee :login))) "  "))
+                  (insert (magit-gh-issues--make-heading-string (cadr templates) id (oref issue :title) comments  labels))))
 
               (magit-insert-heading)
 
