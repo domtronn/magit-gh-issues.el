@@ -606,7 +606,7 @@ It refreshes magit status to re-render the issues section."
               (?g "Reload all issues from GitHub"  magit-gh-issues-reload)
               "Local Commands (run whilst focusing on an issue)"
               (?c "Comment on current Issue" magit-gh-issues-comment-issue)
-              (?k "Close current Issue" magit-gh-issues-comment-issue)
+              (?k "Close current Issue" magit-gh-issues-close-issue)
               (?a "Add Label" magit-gh-issues-add-label)
               (?r "Remove Label"magit-gh-issues-remove-label)
               "\
