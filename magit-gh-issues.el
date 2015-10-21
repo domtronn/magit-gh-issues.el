@@ -51,23 +51,30 @@ By default, it performs `executable-find` to try and find ghi on your PATH."
   :group 'magit-gh-issues
   :type 'string)
 
-(defcustom magit-gh-issues--issues-format-width 4
-  "The maximum width of the issue numbers.
-
-E.g.  With padding 4, the issue number 26 will appear as '#26  '
-
-I suggest the following customizations:
-  4 for less than 1000 issues
-  3 for less than 100 issues"
+(defcustom magit-gh-issues--id-max-width 2
+  "The maximum width of the issue numbers as a string without the #."
   :group 'magit-gh-issues
   :type 'number)
 
-(defcustom magit-gh-issues--comments-format-width 3
-  "The maximum width of the comments string.
-
-E.g.  With padding 3, if there were 20 comments the heading will appear as '20 '"
+(defcustom magit-gh-issues--comments-max-width 1
+  "The maximum width of the comments number string."
   :group 'magit-gh-issues
   :type 'number)
+
+(defcustom magit-gh-issues--use-avatars nil
+  "Whether or not to use the avatars for assignees.
+
+When non-nil this displays the users GitHub avatar as an indicator
+that they're assigned to an issue.  When nil, an '@' symbol will be
+displayed instead to indicate this issue is assigned to someone.
+
+This requires making another network request for avatars,
+and although they get cached, you may want to avoid this.
+
+*THIS VARIABLE IS CURRENTLY NOT SUPPORTED FULLY*
+It is dependent on an update to `gh.el`"
+  :group 'magit-gh-issues
+  :type 'boolean)
 
 ;;; Face Definitions
 (defface magit-gh-issues-login-face
@@ -82,6 +89,23 @@ E.g.  With padding 3, if there were 20 comments the heading will appear as '20 '
 By default it calls `magit-gh-issues--unmarkdown-body` which removes markdown
 tags like underscores for italics and stars for bold to make the body
 more readable")
+
+(defcustom magit-gh-issues-title-template-string "%id% %comments %avatar% %title% %labels%"
+  "A template string for the title issues.
+
+Items in '%..%' get replaced by the relevant GitHub item, they have to
+match exactly.  Currently we support the following
+  %id%       - The issue number
+  %avatar%   - The users GitHub avatar icon
+  %comments% - The number of comments on an issue
+  %title%    - The title of the issue
+  %labels%   - The labels on the issue")
+
+(defvar magit-gh-issues-format-alist
+  '((id . (magit-gh-issues--make-id-string magit-gh-issues--id-max-width))
+    (comments . (magit-gh-issues--make-comments-string magit-gh-issues--comments-max-width))
+    (title . (identity))
+    (labels . (magit-gh-issues--make-label-string))))
 
 (defvar ac-source-gh-issues '((candidates . ac-gh-issues--candidates)
                                (prefix . "#\\S-*"))
@@ -133,16 +157,19 @@ The format should be `magit-gh-user-repo-label-name-face`"
    (format "magit-gh-%s-%s-label-%s-face" user proj name)))
 
 (defun magit-gh-issues-get-avatar (url)
-  "Get, and cache, the users avatar URL."
-  (let ((url (concat url "&size=" (number-to-string (/ (face-attribute 'default :height) 10)))))
-    (if (gravatar-cache-expired url)
-        (with-current-buffer (url-retrieve-synchronously url)
-          (let ((img (gravatar-data->image)))
-            (propertize "*" 'display `((,@img :ascent center :relief 1)))))
-      (with-temp-buffer
-        (mm-disable-multibyte)
-        (url-cache-extract (url-cache-create-filename url))
-        (gravatar-data->image)))))
+  "Get, and cache, the users avatar from URL."
+  (if magit-gh-issues--use-avatars
+      (let ((url (concat url "&size=" (number-to-string (/ (face-attribute 'default :height) 10))))
+            (result nil))
+        (if (gravatar-cache-expired url)
+            (with-current-buffer (url-retrieve-synchronously url)
+              (let ((img (gravatar-data->image)))
+                (propertize "*" 'display `((,@img :ascent center :relief 1)))))
+          (with-temp-buffer
+            (mm-disable-multibyte)
+            (url-cache-extract (url-cache-create-filename url))
+            (gravatar-data->image))))
+    "@ "))
 
 (defun magit-gh-issues-get-labels ()
   "Get the raw labels data from the gh library for repo."
@@ -206,9 +233,12 @@ The format should be `magit-gh-user-repo-label-name-face`"
            (color (oref label :color)))
       (eval `(magit-gh-issues--make-face ,name ,(concat "#" color))))))
 
-(defun magit-gh-issues--label-list (labels user proj)
+(defun magit-gh-issues--label-list (labels)
   "Create a propertized list of LABELS using faces namespaced by USER & PROJ."
-  (let ((result '()))
+  (let* ((repo (magit-gh-issues--guess-repo))
+         (user (car repo))
+         (proj (cdr repo))
+         (result '()))
     (dolist (label labels)
       (let* ((name (cdr (assoc 'name label)))
              (s (format "%s"
@@ -218,9 +248,9 @@ The format should be `magit-gh-user-repo-label-name-face`"
         (setq result (append result (list s)))))
     result))
 
-(defun magit-gh-issues--make-label-string (labels user proj)
-  "Create a propertized string of LABELS using faces namespaced by USER & PROJ."
-  (mapconcat 'format (magit-gh-issues--label-list labels user proj) " "))
+(defun magit-gh-issues--make-label-string (labels)
+  "Create a propertized string of LABELS."
+  (mapconcat 'format (magit-gh-issues--label-list labels) " "))
 
 (defun magit-gh-issues--unmarkdown-body (body)
   "Remove markdown decoration like underscores from BODY."
@@ -231,28 +261,47 @@ The format should be `magit-gh-user-repo-label-name-face`"
     (mapc (lambda (regexp) (setq body (replace-regexp-in-string (car regexp) (cdr regexp) body))) regexps))
   (format "%s\n\n" body))
 
+(defun magit-gh-issues--make-comments-string (comments)
+  "Create the comment number string from COMMENTS.
 
-(defun magit-gh-issues--make-pre-heading-string (id comments)
-  "Create the propertized string for the ID & COMMENTS of an issue."
-  (let* ((id-s (number-to-string id))
-         (id-padding (make-string (max (- magit-gh-issues--issues-format-width (length id-s)) 1) ? ))
-         (id-p (propertize (format "#%s" id-s) 'face 'magit-tag))
-
-         (comments-s (if comments (number-to-string (length comments)) nil))
-         (comments-padding (make-string (max (- magit-gh-issues--comments-format-width (length comments-s)) 1) ? ))
+COMMENTS should be a list of objects."
+  (let* ((comments-s (if comments (number-to-string (length comments)) nil))
+         (comments-padding (make-string (max (- magit-gh-issues--comments-max-width (length comments-s)) 0) ? ))
          (comments-p (propertize (if comments (format "%s" (length comments)) "") 'face 'magit-cherry-equivalent)))
+    (concat comments-p comments-padding)))
 
-    (concat id-p id-padding comments-p comments-padding)))
+(defun magit-gh-issues--make-id-string (id)
+  "Create the propertized ID string."
+  (let* ((id-s (number-to-string id))
+         (id-padding (make-string (max (- magit-gh-issues--id-max-width (length id-s)) 0) ? ))
+         (id-p (propertize (format "#%s" id-s) 'face 'magit-tag)))
+    (concat id-p id-padding)))
 
-(defun magit-gh-issues--make-heading-string (title &optional labels)
+(defun magit-gh-issues--make-heading-string (template id title comments &optional labels)
   "Create the propertized string used for issue headers using.
 
 TITLE, If LABELS is non-nil, build the title will be
 appended with a propertized list of labels specific to that GitHub project."
-  (let* ((title-p (magit-gh-issues-format-text-in-rectangle (format "%s %s" title (or labels ""))
-                                             (- (window-width) 5)
-                                             (make-string (+ 4 magit-gh-issues--comments-format-width magit-gh-issues--issues-format-width) ? ))))
-    (concat title-p "\n")))
+  (with-temp-buffer
+    (insert template)
+    (goto-char (point-min))
+    (while (re-search-forward "%\\([a-z]+?\\)%" nil t)
+      (let* (;; Need to save reference to regexp region as other searches
+             ;; are preformed elsewhere
+             (beg (match-beginning 0))
+             (end (match-end 0))
+
+             (m (match-string 1))
+             (format (assoc (intern m) magit-gh-issues-format-alist))
+             (default-value (symbol-value (caddr format)))
+             (args (symbol-value (car format)))
+             (f (cadr format))
+
+             (result (if args (funcall f args) (make-string (or default-value 0) ? ))))
+        (replace-region beg end "")
+        (insert result)))
+
+    (buffer-string)))
 
 (defun magit-gh-issues--make-comment-heading-string (login time)
   "Create the propertized string used for comment headers.
@@ -424,7 +473,7 @@ It refreshes magit status to re-render the issues section."
   "Prompt LABELS with PROMPT-PREFIX and perform the API call F for the labels of the current issue."
   (when (eq 'issue (magit-section-type (magit-current-section)))
     (let* ((repo (magit-gh-issues--guess-repo))
-           (prompt (magit-gh-issues--label-list labels (car repo) (cdr repo))))
+           (prompt (magit-gh-issues--label-list labels)))
       (let* ((label-p (completing-read (format "%s Label: " prompt-prefix) prompt))
              (label (replace-regexp-in-string "^ \\(.*\\) $" "\\1" (format "%s" label-p)))
              (issue (cdr (assoc 'issue (magit-section-value (magit-current-section)))))
@@ -443,8 +492,7 @@ It refreshes magit status to re-render the issues section."
          (issues-cached? (magit-gh-issues-cached-p api user proj))
          (issues (when issues-cached? (magit-gh-issues-get-issues)))
          (labels-cached? (magit-gh-labels-cached-p api user proj))
-         (labels (when labels-cached? (magit-gh-issues-get-labels)))
-         (label-string nil))
+         (labels (when labels-cached? (magit-gh-issues-get-labels))))
 
     (magit-gh-issues--reset-ac-candidates)
 
@@ -457,18 +505,15 @@ It refreshes magit status to re-render the issues section."
         (dolist (issue issues)
           (let* ((id (oref issue :number))
                  (body (oref issue :body))
-                 (url (oref issue :html-url))
                  (labels (oref issue :labels))
                  (avatar-url (oref (oref issue :assignee) :avatar-url))
-                 (label-string (when labels
-                                 (magit-gh-issues--make-label-string labels user proj)))
                  (comments (magit-gh-issues-get-issue-comments id)))
             (magit-insert-section (issue `((issue . ,issue) (labels . ,labels)) t)
-              (magit-insert (magit-gh-issues--make-pre-heading-string id comments))
-              (insert (if avatar-url
-                          (magit-gh-issues-get-avatar avatar-url)
-                        "  ") " ")
-              (magit-insert (magit-gh-issues--make-heading-string (oref issue :title) label-string))
+              (let ((templates (split-string magit-gh-issues-title-template-string "%avatar%")))
+                (insert (magit-gh-issues--make-heading-string (car templates) id (oref issue :title) comments labels))
+                (insert (if avatar-url (magit-gh-issues-get-avatar avatar-url) "  "))
+                (insert (magit-gh-issues--make-heading-string (cadr templates) id (oref issue :title) comments  labels)))
+
               (magit-insert-heading)
 
               (magit-gh-issues--append-ac-candidate (format "#%s" id) (oref issue :title))
