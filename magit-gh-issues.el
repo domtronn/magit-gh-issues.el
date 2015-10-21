@@ -277,11 +277,19 @@ COMMENTS should be a list of objects."
          (id-p (propertize (format "#%s" id-s) 'face 'magit-tag)))
     (concat id-p id-padding)))
 
-(defun magit-gh-issues--make-heading-string (template id title comments &optional labels)
-  "Create the propertized string used for issue headers using.
+(defun magit-gh-issues--make-heading-string (template id title comments labels)
+  "Create the propertized string used for issue headers.
 
-TITLE, If LABELS is non-nil, build the title will be
-appended with a propertized list of labels specific to that GitHub project."
+This function maps each of the arguments provided to a placeholder
+in TEMPLATE.  It uses the `magit-gh-issues-format-alist` to create the string for
+each element applied with the argument.  ID should be a number,
+TITLE is a string title of the issue, COMMENTS is a list of the
+comments and LABELS is a list of `gh-label` objects relating to the
+issue.
+
+The logic behind creating each of these strings should be found in a
+`magit-gh-issues--make-variable-string` function.  TITLE is an exception in that it
+just uses the `identity` function"
   (with-temp-buffer
     (insert template)
     (goto-char (point-min))
