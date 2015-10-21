@@ -90,7 +90,7 @@ By default it calls `magit-gh-issues--unmarkdown-body` which removes markdown
 tags like underscores for italics and stars for bold to make the body
 more readable")
 
-(defcustom magit-gh-issues-title-template-string "%id% %comments %avatar% %title% %labels%"
+(defcustom magit-gh-issues-title-template-string "%id% %comments% %avatar% %title% %labels%"
   "A template string for the title issues.
 
 Items in '%..%' get replaced by the relevant GitHub item, they have to
