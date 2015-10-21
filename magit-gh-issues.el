@@ -156,8 +156,11 @@ The format should be `magit-gh-user-repo-label-name-face`"
    "[. ]" "-"
    (format "magit-gh-%s-%s-label-%s-face" user proj name)))
 
-(defun magit-gh-issues-get-avatar (url)
-  "Get, and cache, the users avatar from URL."
+(defun magit-gh-issues-get-avatar (url &optional assignee)
+  "Get, and cache, the users avatar from URL.
+
+If an ASSIGNEE is provided then the first character of their
+name is used for the assignment indicator."
   (if magit-gh-issues--use-avatars
       (let ((url (concat url "&size=" (number-to-string (/ (face-attribute 'default :height) 10))))
             (result nil))
@@ -169,7 +172,7 @@ The format should be `magit-gh-user-repo-label-name-face`"
             (mm-disable-multibyte)
             (url-cache-extract (url-cache-create-filename url))
             (gravatar-data->image))))
-    "@ "))
+    (propertize (format "@%s" (if assignee (substring assignee 0 1) " ")) 'face 'magit-cherry-unmatched)))
 
 (defun magit-gh-issues-get-labels ()
   "Get the raw labels data from the gh library for repo."
@@ -514,12 +517,13 @@ It refreshes magit status to re-render the issues section."
           (let* ((id (oref issue :number))
                  (body (oref issue :body))
                  (labels (oref issue :labels))
-                 (avatar-url (oref (oref issue :assignee) :avatar-url))
+                 (assignee (oref issue :assignee))
+                 (avatar-url (oref assignee :avatar-url))
                  (comments (magit-gh-issues-get-issue-comments id)))
             (magit-insert-section (issue `((issue . ,issue) (labels . ,labels)) t)
               (let ((templates (split-string magit-gh-issues-title-template-string "%avatar%")))
                 (insert (magit-gh-issues--make-heading-string (car templates) id (oref issue :title) comments labels))
-                (insert (if avatar-url (magit-gh-issues-get-avatar avatar-url) "  "))
+                (insert (if avatar-url (magit-gh-issues-get-avatar avatar-url (upcase (oref assignee :login))) "  "))
                 (insert (magit-gh-issues--make-heading-string (cadr templates) id (oref issue :title) comments  labels)))
 
               (magit-insert-heading)
