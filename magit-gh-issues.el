@@ -425,6 +425,7 @@ It refreshes magit status to re-render the issues section."
 (defun magit-gh-issues-close-issue ()
   "Close the current highlighted issue."
   (interactive)
+  (magit-gh-issues-check-in-section '(issue comments comment))
   (when (eq 'issue (magit-section-type (magit-current-section)))
     (let* ((issue (cdr (assoc 'issue (magit-section-value (magit-current-section)))))
            (repo (magit-gh-issues--guess-repo))
@@ -453,6 +454,12 @@ It refreshes magit status to re-render the issues section."
         (set-process-sentinel process 'magit-gh-issues-process-sentinel))
     (error "Could not find the `ghi` executable.  Have you got it installed?")))
 
+(defun magit-gh-issues-check-in-section (sections)
+  "Check that the user is in one of SECTIONS."
+  (let ((section (magit-section-type (magit-current-section))))
+    (when (--none? (eq it section) sections)
+      (error "You are currently not in the right section"))))
+
 (defun magit-gh-issues-open-issue ()
   "Open an issue using ghi."
   (interactive)
@@ -461,6 +468,7 @@ It refreshes magit status to re-render the issues section."
 (defun magit-gh-issues-comment-issue ()
   "Comment on the current issue using ghi."
   (interactive)
+  (magit-gh-issues-check-in-section '(issue comments comment))
   (let* ((issue (cdr (assoc 'issue (magit-section-value (magit-current-section)))))
          (id (oref issue :number)))
     (magit-gh-issues--start-ghi "comment" (format "%s" id))))
@@ -482,17 +490,17 @@ It refreshes magit status to re-render the issues section."
 
 (defun magit-gh-issues--call-label-api (labels prompt-prefix f)
   "Prompt LABELS with PROMPT-PREFIX and perform the API call F for the labels of the current issue."
-  (when (eq 'issue (magit-section-type (magit-current-section)))
-    (let* ((repo (magit-gh-issues--guess-repo))
-           (prompt (magit-gh-issues--label-list labels)))
-      (let* ((label-p (completing-read (format "%s Label: " prompt-prefix) prompt))
-             (label (replace-regexp-in-string "^ \\(.*\\) $" "\\1" (format "%s" label-p)))
-             (issue (cdr (assoc 'issue (magit-section-value (magit-current-section)))))
-             (url (oref issue :url))
-             (id (oref issue :number)))
-        (when label
-          (funcall f (magit-gh-issues--get-api) (car repo) (cdr repo) id label)
-          (magit-gh-issues-reload))))))
+  (magit-gh-issues-check-in-section '(issue comments comment))
+  (let* ((repo (magit-gh-issues--guess-repo))
+         (prompt (magit-gh-issues--label-list labels)))
+    (let* ((label-p (completing-read (format "%s Label: " prompt-prefix) prompt))
+           (label (replace-regexp-in-string "^ \\(.*\\) $" "\\1" (format "%s" label-p)))
+           (issue (cdr (assoc 'issue (magit-section-value (magit-current-section)))))
+           (url (oref issue :url))
+           (id (oref issue :number)))
+      (when label
+        (funcall f (magit-gh-issues--get-api) (car repo) (cdr repo) id label)
+        (magit-gh-issues-reload)))))
 
 (defun magit-gh-issues-insert-issues ()
   "Insert the actual issues sections into magit."
