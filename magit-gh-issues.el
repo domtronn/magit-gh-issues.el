@@ -297,21 +297,15 @@ just uses the `identity` function"
     (insert template)
     (goto-char (point-min))
     (while (re-search-forward "%\\([a-z]+?\\)%" nil t)
-      (let* (;; Need to save reference to regexp region as other searches
-             ;; are preformed elsewhere
-             (beg (match-beginning 0))
-             (end (match-end 0))
-
-             (m (match-string 1))
-             (format (assoc (intern m) magit-gh-issues-format-alist))
+      (let* ((m (match-data))
+             (format (assoc (intern (match-string 1)) magit-gh-issues-format-alist))
              (default-value (symbol-value (caddr format)))
              (args (symbol-value (car format)))
              (f (cadr format))
 
              (result (if args (funcall f args) (make-string (or default-value 0) ? ))))
-        (replace-region beg end "")
-        (insert result)))
-
+        (set-match-data m)
+        (replace-match result)))
     (buffer-string)))
 
 (defun magit-gh-issues--make-comment-heading-string (login time)
