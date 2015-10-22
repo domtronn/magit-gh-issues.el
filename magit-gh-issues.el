@@ -164,7 +164,13 @@ If BOX is non-nil then it will display a box around the face."
 (defun magit-gh-issues--make-login-face (login)
   "Build the LOGIN name face to have unique colours."
   (let* ((name (split-string login ""))
-         (col (format "#%06x" (* 600 (length login) (-reduce '+ (--map (* 5 (string-to-char it)) name))))))
+         (n (-reduce '+ (--map (* 5 (string-to-char it)) name)))
+         (i (mod n 2000))
+				 (f (/ 5.0 2000))
+				 (r (mod (+ (* (sin (* f i)) 127) 128) 256))
+				 (g (mod (+ (* (sin (+ (* f i) 2)) 127) 128) 256))
+				 (b (mod (+ (* (sin (+ (* f i) 4)) 127) 128) 256))
+         (col (format "#%02x%02x%02x" r g b)))
     (eval `(magit-gh-issues--make-face ,(magit-gh-issues--build-login-face-name login) ,col nil))))
 
 (defun magit-gh--build-face-name (user proj name)
