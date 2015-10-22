@@ -61,6 +61,11 @@ By default, it performs `executable-find` to try and find ghi on your PATH."
   :group 'magit-gh-issues
   :type 'number)
 
+(defcustom magit-gh-issues--assignee-max-width 3
+  "The maximum width of the assignee name string."
+  :group 'magit-gh-issues
+  :type 'number)
+
 (defcustom magit-gh-issues--use-avatars nil
   "Whether or not to use the avatars for assignees.
 
@@ -162,17 +167,24 @@ The format should be `magit-gh-user-repo-label-name-face`"
 If an ASSIGNEE is provided then the first character of their
 name is used for the assignment indicator."
   (if magit-gh-issues--use-avatars
-      (let ((url (concat url "&size=" (number-to-string (/ (face-attribute 'default :height) 10))))
-            (result nil))
-        (if (gravatar-cache-expired url)
-            (with-current-buffer (url-retrieve-synchronously url)
-              (let ((img (gravatar-data->image)))
-                (propertize "*" 'display `((,@img :ascent center :relief 1)))))
-          (with-temp-buffer
-            (mm-disable-multibyte)
-            (url-cache-extract (url-cache-create-filename url))
-            (gravatar-data->image))))
-    (propertize (format "@%s" (if assignee (substring assignee 0 1) " ")) 'face 'magit-cherry-unmatched)))
+      (if url
+          (let ((url (concat url "&size=" (number-to-string (/ (face-attribute 'default :height) 10))))
+                (result nil))
+            (if (gravatar-cache-expired url)
+                (with-current-buffer (url-retrieve-synchronously url)
+                  (let ((img (gravatar-data->image)))
+                    (propertize "*" 'display `((,@img :ascent center :relief 1)))))
+              (with-temp-buffer
+                (mm-disable-multibyte)
+                (url-cache-extract (url-cache-create-filename url))
+                (gravatar-data->image))))
+        "  ")
+    (if assignee
+        (progn
+
+          (propertize (format "@%s" (capitalize (substring assignee 0 (min (- (length assignee) 1) magit-gh-issues--assignee-max-width))))
+                     'face 'magit-cherry-unmatched))
+      (concat " " (make-string magit-gh-issues--assignee-max-width ? )))))
 
 (defun magit-gh-issues-get-labels ()
   "Get the raw labels data from the gh library for repo."
@@ -526,7 +538,7 @@ It refreshes magit status to re-render the issues section."
               (let ((templates (split-string magit-gh-issues-title-template-string "%avatar%")))
                 (insert (magit-gh-issues--make-heading-string (car templates) id (oref issue :title) comments labels))
                 (when (cadr templates)
-                  (insert (if avatar-url (magit-gh-issues-get-avatar avatar-url (upcase (oref assignee :login))) "  "))
+                  (insert (magit-gh-issues-get-avatar avatar-url (oref assignee :login)))
                   (insert (magit-gh-issues--make-heading-string (cadr templates) id (oref issue :title) comments  labels))))
 
               (magit-insert-heading)
