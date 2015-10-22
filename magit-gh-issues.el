@@ -62,7 +62,9 @@ By default, it performs `executable-find` to try and find ghi on your PATH."
   :type 'number)
 
 (defcustom magit-gh-issues--assignee-max-width 3
-  "The maximum width of the assignee name string."
+  "The maximum width of the assignee name string.
+
+E.g.  A max width of 3 and a username of `John_Doe` will display `@Joh`"
   :group 'magit-gh-issues
   :type 'number)
 
@@ -145,13 +147,25 @@ of the issues section in `magit` and gets reset between renders.")
          (url (magit-get "remote" remote "url")))
     (magit-gh-issues--parse-url url)))
 
-(defmacro magit-gh-issues--make-face (name col)
-  "Macro to make a face called NAME with foreground and box COL."
+(defmacro magit-gh-issues--make-face (name col &optional box)
+  "Macro to make a face called NAME with foreground and box COL.
+
+If BOX is non-nil then it will display a box around the face."
   (let ((face-name (intern name)))
     `(defface ,face-name
-       '((t :foreground ,col :box t))
+       '((t :foreground ,col :box ,box))
        ,(concat "Face for GitHub label " name ".")
        :group 'magit-faces)))
+
+(defun magit-gh-issues--build-login-face-name (login)
+  "Build the face name for a user LOGIN."
+  (replace-regexp-in-string "[. ]" "-" (format "magit-gh-%s-face" login)))
+
+(defun magit-gh-issues--make-login-face (login)
+  "Build the LOGIN name face to have unique colours."
+  (let* ((name (split-string login ""))
+         (col (format "#%06x" (* 600 (length login) (-reduce '+ (--map (* 5 (string-to-char it)) name))))))
+    (eval `(magit-gh-issues--make-face ,(magit-gh-issues--build-login-face-name login) ,col nil))))
 
 (defun magit-gh--build-face-name (user proj name)
   "Build the name for a label face from USER PROJ and NAME.
@@ -161,30 +175,37 @@ The format should be `magit-gh-user-repo-label-name-face`"
    "[. ]" "-"
    (format "magit-gh-%s-%s-label-%s-face" user proj name)))
 
-(defun magit-gh-issues-get-avatar (url &optional assignee)
-  "Get, and cache, the users avatar from URL.
+(defun magit-gh-issues-get-avatar (url)
+  "Get, and cache, the users avatar from URL."
+  (if url
+      (let ((url (concat url "&size=" (number-to-string (/ (face-attribute 'default :height) 10))))
+            (result nil))
+        (if (gravatar-cache-expired url)
+            (with-current-buffer (url-retrieve-synchronously url)
+              (let ((img (gravatar-data->image)))
+                (propertize "*" 'display `((,@img :ascent center :relief 1)))))
+          (with-temp-buffer
+            (mm-disable-multibyte)
+            (url-cache-extract (url-cache-create-filename url))
+            (gravatar-data->image))))
+    "  "))
 
-If an ASSIGNEE is provided then the first character of their
-name is used for the assignment indicator."
-  (if magit-gh-issues--use-avatars
-      (if url
-          (let ((url (concat url "&size=" (number-to-string (/ (face-attribute 'default :height) 10))))
-                (result nil))
-            (if (gravatar-cache-expired url)
-                (with-current-buffer (url-retrieve-synchronously url)
-                  (let ((img (gravatar-data->image)))
-                    (propertize "*" 'display `((,@img :ascent center :relief 1)))))
-              (with-temp-buffer
-                (mm-disable-multibyte)
-                (url-cache-extract (url-cache-create-filename url))
-                (gravatar-data->image))))
-        "  ")
-    (if assignee
+(defun magit-gh-issues-get-at-assignee (assignee)
+  "Create an indicator for the assignees from ASSIGNEE.
+
+User names have a face created for them to uniquely identify them."
+  (if (and assignee (not (string= assignee "unbound")))
         (progn
-
+          (magit-gh-issues--make-login-face assignee)
           (propertize (format "@%s" (capitalize (substring assignee 0 (min (- (length assignee) 1) magit-gh-issues--assignee-max-width))))
-                     'face 'magit-cherry-unmatched))
-      (concat " " (make-string magit-gh-issues--assignee-max-width ? )))))
+                     'face (intern (magit-gh-issues--build-login-face-name assignee))))
+      (concat " " (make-string magit-gh-issues--assignee-max-width ? ))))
+
+(defun magit-gh-issues--make-assignee-string (assignee)
+  "Create the string for use in the ASSIGNEE part of the title."
+  (if magit-gh-issues--use-avatars
+      (magit-gh-issues-get-avatar (oref assignee :avatar-url))
+    (magit-gh-issues-get-at-assignee (oref assignee :login))))
 
 (defun magit-gh-issues-get-labels ()
   "Get the raw labels data from the gh library for repo."
@@ -246,7 +267,7 @@ name is used for the assignment indicator."
   (dolist (label labels)
     (let* ((name (magit-gh--build-face-name user proj (oref label :name)))
            (color (oref label :color)))
-      (eval `(magit-gh-issues--make-face ,name ,(concat "#" color))))))
+      (eval `(magit-gh-issues--make-face ,name ,(concat "#" color) t)))))
 
 (defun magit-gh-issues--label-list (labels)
   "Create a propertized list of LABELS using faces namespaced by USER & PROJ."
@@ -532,13 +553,12 @@ It refreshes magit status to re-render the issues section."
                  (body (oref issue :body))
                  (labels (oref issue :labels))
                  (assignee (oref issue :assignee))
-                 (avatar-url (oref assignee :avatar-url))
                  (comments (magit-gh-issues-get-issue-comments id)))
             (magit-insert-section (issue `((issue . ,issue) (labels . ,labels)) t)
               (let ((templates (split-string magit-gh-issues-title-template-string "%avatar%")))
                 (insert (magit-gh-issues--make-heading-string (car templates) id (oref issue :title) comments labels))
                 (when (cadr templates)
-                  (insert (magit-gh-issues-get-avatar avatar-url (oref assignee :login)))
+                  (insert (magit-gh-issues--make-assignee-string assignee))
                   (insert (magit-gh-issues--make-heading-string (cadr templates) id (oref issue :title) comments  labels))))
 
               (magit-insert-heading)
