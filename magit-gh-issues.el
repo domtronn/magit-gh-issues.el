@@ -573,6 +573,17 @@ It refreshes magit status to re-render the issues section."
     (gh-issues-issue-update (magit-gh-issues--get-api) (car repo) (cdr repo) id issue)
     (magit-gh-issues-reload)))
 
+(defun magit-gh-issues-unassign ()
+  "Unassign all assignees from the current issue and refresh."
+  (interactive)
+  (magit-gh-issues-check-in-section '(issue comments comment))
+  (let* ((repo (magit-gh-issues--guess-repo))
+         (issue (cdr (assoc 'issue (magit-section-value (magit-current-section)))))
+         (id (oref issue :number)))
+    (oset issue :assignee (make-instance gh-user :login nil))
+    (gh-issues-issue-update (magit-gh-issues--get-api) (car repo) (cdr repo) id issue)
+    (magit-gh-issues-reload)))
+
 (defun magit-gh-issues-insert-issues ()
   "Insert the actual issues sections into magit."
   (let* ((repo (magit-gh-issues--guess-repo))
@@ -689,12 +700,13 @@ It refreshes magit status to re-render the issues section."
   :actions '("Label Commands"
              (?a "Add Label" magit-gh-issues-add-label)
              (?k "Remove Label" magit-gh-issues-remove-label)))
+
 (magit-define-popup magit-gh-issues-popup-assign
   "Popup console for GitHub Issues Assignment commands."
   'magit-commands nil nil
   :actions '("Assignment Commands"
              (?a "Add Label" magit-gh-issues-assign)
-             ))
+             (?k "Remove Label" magit-gh-issues-unassign)))
 
 ;;;###autoload
 (define-minor-mode magit-gh-issues-mode "GitHub Issues support for Magit using gh"
