@@ -661,6 +661,8 @@ It refreshes magit status to re-render the issues section."
     (define-key map [C-return] 'magit-gh-issues-visit-issue)
     (define-key map "la" 'magit-gh-issues-add-label)
     (define-key map "lk" 'magit-gh-issues-remove-label)
+    (define-key map "aa" 'magit-gh-issues-assign)
+    (define-key map "ak" 'magit-gh-issues-unassign)
     (define-key map "c" 'magit-gh-issues-comment-issue)
     (define-key map "k" 'magit-gh-issues-close-issue)
     map)
@@ -704,8 +706,8 @@ It refreshes magit status to re-render the issues section."
   "Popup console for GitHub Issues Assignment commands."
   'magit-commands nil nil
   :actions '("Assignment Commands"
-             (?a "Add Label" magit-gh-issues-assign)
-             (?k "Remove Label" magit-gh-issues-unassign)))
+             (?a "Assign / Edit Assignees" magit-gh-issues-assign)
+             (?k "Unassign" magit-gh-issues-unassign)))
 
 ;;;###autoload
 (define-minor-mode magit-gh-issues-mode "GitHub Issues support for Magit using gh"
