@@ -192,12 +192,14 @@ The format should be `magit-gh-user-repo-label-name-face`"
             (result nil))
         (if (gravatar-cache-expired url)
             (with-current-buffer (url-retrieve-synchronously url)
+              (url-store-in-cache (current-buffer))
               (let ((img (gravatar-data->image)))
                 (propertize "*" 'display `((,@img :ascent center :relief 1)))))
           (with-temp-buffer
             (mm-disable-multibyte)
             (url-cache-extract (url-cache-create-filename url))
-            (gravatar-data->image))))
+            (let ((img (gravatar-data->image)))
+              (propertize "*" 'display `((,@img :ascent center :relief 1)))))))
     "  "))
 
 (defun magit-gh-issues-get-at-assignee (assignee)
