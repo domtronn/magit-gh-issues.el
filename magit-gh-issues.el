@@ -248,16 +248,20 @@ User names have a face created for them to uniquely identify them."
          (proj (cdr repo)))
     (oref (gh-issues-issue-list api user proj) :data)))
 
-(defun magit-gh-issues-purge-cache ()
-  "Purge the cache of all items for a repo matching a repos user and project name."
+(defun magit-gh-issues-purge-cache (&optional only)
+  "Purge the cache of items matching a repos user and project name.
+
+If ONLY is provided, then this is appended to the string match check
+of the cache key."
   (mapc
    (lambda (api)
      (let* ((cache (oref api :cache))
-            (repo (magit-gh-issues--guess-repo)))
+            (repo (magit-gh-issues--guess-repo))
+            (only (or only "")))
        (pcache-map cache
                    (lambda (k v)
                      (when (string-match
-                            (format "/repos/%s/%s/" (car repo) (cdr repo))
+                            (format "/repos/%s/%s/%s" (car repo) (cdr repo) only)
                             (car k))
                        (pcache-invalidate cache k))))))
    `(,(magit-gh-issues--get-api) ,(magit-gh-issues--get-comments-api))))
@@ -407,7 +411,8 @@ It refreshes magit status to re-render the issues section."
   (let ((repo (magit-gh-issues--guess-repo)))
     (if (not (and repo (car repo) (cdr repo)))
         (message "Remote repository is not configured or incorrect.")
-      (magit-gh-issues-purge-cache)
+      (magit-gh-issues-purge-cache "issues")
+      (magit-gh-issues-purge-cache "labels")
       (magit-gh-issues-get-labels)
       (magit-gh-issues-get-issues)
       (magit-refresh))))
