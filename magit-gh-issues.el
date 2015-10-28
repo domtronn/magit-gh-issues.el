@@ -131,6 +131,10 @@ of the issues section in `magit` and gets reset between renders.")
   "Get the `gh-issue-comments-api` object."
   (gh-issue-comments-api "api" :sync t :num-retries 1 :cache (gh-cache "cache")))
 
+(defun magit-gh-issues--get-users-api ()
+  "Get the `gh-users-api` object."
+  (gh-users-api "api" :sync t :num-retries 1 :cache (gh-cache "cache")))
+
 (defun magit-gh-issues--parse-url (url)
   "Parse a remote URL into a cons cell of ( username . reponame )."
   (let* ((fixed-url (if (and (not (s-matches? "^[a-zA-Z_-]+://" url))
@@ -228,6 +232,13 @@ User names have a face created for them to uniquely identify them."
          (user (car repo))
          (proj (cdr repo)))
     (oref (gh-issue-comments-list api user proj id) :data)))
+
+(defun magit-gh-issues-get-assignees ()
+  "Get the list of assignees for a repo."
+  (let* ((api (magit-gh-issues--get-users-api))
+         (repo (magit-gh-issues--guess-repo))
+         (result (magit-gh-issues--api-get-assignees api (car repo) (cdr repo))))
+    (--mapcat (list (oref it :login)) (oref result :data))))
 
 (defun magit-gh-issues-get-issues ()
   "Get the raw issues data from the gh library for repo."
@@ -416,6 +427,20 @@ It refreshes magit status to re-render the issues section."
      api (gh-object-list-reader (oref api label-cls)) "DELETE"
      (format "/repos/%s/%s/issues/%s/labels/%s" user repo issue-id label))))
 
+(defmethod magit-gh-issues--api-add-assignee ((api gh-issues-api) user repo
+                               issue-or-issue-id login)
+  (let ((issue-id (gh-issues--issue-id issue-or-issue-id))
+        (to-update `(("assignee" . ,login))))
+    (gh-api-authenticated-request
+     api (gh-object-list-reader (oref api label-cls)) "PATCH"
+     (format "/repos/%s/%s/issues/%s" user repo issue-id)
+     to-update)))
+
+(defmethod magit-gh-issues--api-get-assignees ((api gh-users-api) user repo)
+  (gh-api-authenticated-request
+   api (gh-object-list-reader (oref api users-cls)) "GET"
+   (format "/repos/%s/%s/assignees" user repo)))
+
 (defun magit-gh-issues-process-sentinel (process event)
   "Default sentinel used by `magit-start-process' around PROCESS and EVENT."
   (when (memq (process-status process) '(exit signal))
@@ -535,6 +560,19 @@ It refreshes magit status to re-render the issues section."
         (funcall f (magit-gh-issues--get-api) (car repo) (cdr repo) id label)
         (magit-gh-issues-reload)))))
 
+(defun magit-gh-issues-assign ()
+  "Assign an assignee to the current issue and refresh."
+  (interactive)
+  (magit-gh-issues-check-in-section '(issue comments comment))
+  (let* ((assignees (magit-gh-issues-get-assignees))
+         (assignee-p (completing-read "Assign To: " assignees))
+         (repo (magit-gh-issues--guess-repo))
+         (issue (cdr (assoc 'issue (magit-section-value (magit-current-section)))))
+         (id (oref issue :number)))
+    (oset issue :assignee (make-instance gh-user :login assignee-p))
+    (gh-issues-issue-update (magit-gh-issues--get-api) (car repo) (cdr repo) id issue)
+    (magit-gh-issues-reload)))
+
 (defun magit-gh-issues-insert-issues ()
   "Insert the actual issues sections into magit."
   (let* ((repo (magit-gh-issues--guess-repo))
@@ -640,6 +678,7 @@ It refreshes magit status to re-render the issues section."
               (?c "Comment on current Issue" magit-gh-issues-comment-issue)
               (?k "Close current Issue" magit-gh-issues-close-issue)
               (?l "Label Commands" magit-gh-issues-popup-label)
+              (?a "Assignment Commands" magit-gh-issues-popup-assign)
               "\
  RET    Visit the current issue" nil)
   :max-action-columns 4)
@@ -650,6 +689,13 @@ It refreshes magit status to re-render the issues section."
   :actions '("Label Commands"
              (?a "Add Label" magit-gh-issues-add-label)
              (?k "Remove Label" magit-gh-issues-remove-label)))
+(magit-define-popup magit-gh-issues-popup-assign
+  "Popup console for GitHub Issues Assignment commands."
+  'magit-commands nil nil
+  :actions '("Assignment Commands"
+             (?a "Add Label" magit-gh-issues-assign)
+             ))
+
 ;;;###autoload
 (define-minor-mode magit-gh-issues-mode "GitHub Issues support for Magit using gh"
   :lighter " ghi"
