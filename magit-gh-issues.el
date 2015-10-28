@@ -203,7 +203,7 @@ User names have a face created for them to uniquely identify them."
   (if (and assignee (not (string= assignee "unbound")))
         (progn
           (magit-gh-issues--make-login-face assignee)
-          (propertize (format "@%s" (capitalize (substring assignee 0 (min (- (length assignee) 1) magit-gh-issues--assignee-max-width))))
+          (propertize (format "@%s" (substring assignee 0 (min (- (length assignee) 1) magit-gh-issues--assignee-max-width)))
                      'face (intern (magit-gh-issues--build-login-face-name assignee))))
       (concat " " (make-string magit-gh-issues--assignee-max-width ? ))))
 
