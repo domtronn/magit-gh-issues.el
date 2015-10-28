@@ -402,7 +402,7 @@ It refreshes magit status to re-render the issues section."
       (magit-refresh))))
 
 (defmethod magit-gh-issues--api-add-label ((api gh-issues-api) user repo
-                                           issue-or-issue-id label)
+                            issue-or-issue-id label)
   (let ((issue-id (gh-issues--issue-id issue-or-issue-id)))
     (gh-api-authenticated-request
      api (gh-object-list-reader (oref api label-cls)) "POST"
@@ -410,7 +410,7 @@ It refreshes magit status to re-render the issues section."
      (list label))))
 
 (defmethod magit-gh-issues--api-remove-label ((api gh-issues-api) user repo
-                                              issue-or-issue-id label)
+                               issue-or-issue-id label)
   (let ((issue-id (gh-issues--issue-id issue-or-issue-id)))
     (gh-api-authenticated-request
      api (gh-object-list-reader (oref api label-cls)) "DELETE"
@@ -611,9 +611,9 @@ It refreshes magit status to re-render the issues section."
   (let ((map (make-sparse-keymap)))
     (define-key map "\r" 'magit-gh-issues-visit-issue)
     (define-key map [C-return] 'magit-gh-issues-visit-issue)
-    (define-key map "a" 'magit-gh-issues-add-label)
+    (define-key map "la" 'magit-gh-issues-add-label)
+    (define-key map "lk" 'magit-gh-issues-remove-label)
     (define-key map "c" 'magit-gh-issues-comment-issue)
-    (define-key map "r" 'magit-gh-issues-remove-label)
     (define-key map "k" 'magit-gh-issues-close-issue)
     map)
   "Keymap for `issues` section.")
@@ -639,12 +639,17 @@ It refreshes magit status to re-render the issues section."
               "Local Commands (run whilst focusing on an issue)"
               (?c "Comment on current Issue" magit-gh-issues-comment-issue)
               (?k "Close current Issue" magit-gh-issues-close-issue)
-              (?a "Add Label" magit-gh-issues-add-label)
-              (?r "Remove Label"magit-gh-issues-remove-label)
+              (?l "Label Commands" magit-gh-issues-popup-label)
               "\
  RET    Visit the current issue" nil)
   :max-action-columns 4)
 
+(magit-define-popup magit-gh-issues-popup-label
+  "Popup console for GitHub Issues label commands."
+  'magit-commands nil nil
+  :actions '("Label Commands"
+             (?a "Add Label" magit-gh-issues-add-label)
+             (?k "Remove Label" magit-gh-issues-remove-label)))
 ;;;###autoload
 (define-minor-mode magit-gh-issues-mode "GitHub Issues support for Magit using gh"
   :lighter " ghi"
