@@ -97,13 +97,13 @@ By default it calls `magit-gh-issues--unmarkdown-body` which removes markdown
 tags like underscores for italics and stars for bold to make the body
 more readable")
 
-(defcustom magit-gh-issues-title-template-string "%id% %comments% %avatar% %title% %labels%"
+(defcustom magit-gh-issues-title-template-string "%id% %comments% %assignee% %title% %labels%"
   "A template string for the title issues.
 
 Items in '%..%' get replaced by the relevant GitHub item, they have to
 match exactly.  Currently we support the following
   %id%       - The issue number
-  %avatar%   - The users GitHub avatar icon
+  %assignee% - The users GitHub login or avatar icon
   %comments% - The number of comments on an issue
   %title%    - The title of the issue
   %labels%   - The labels on the issue")
@@ -609,7 +609,7 @@ It refreshes magit status to re-render the issues section."
                  (assignee (oref issue :assignee))
                  (comments (magit-gh-issues-get-issue-comments id)))
             (magit-insert-section (issue `((issue . ,issue) (labels . ,labels)) t)
-              (let ((templates (split-string magit-gh-issues-title-template-string "%avatar%")))
+              (let ((templates (split-string magit-gh-issues-title-template-string "%assignee%")))
                 (insert (magit-gh-issues--make-heading-string (car templates) id (oref issue :title) comments labels))
                 (when (cadr templates)
                   (insert (magit-gh-issues--make-assignee-string assignee))
