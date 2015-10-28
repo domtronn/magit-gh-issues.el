@@ -369,7 +369,8 @@ just uses the `identity` function"
 
 It displays @LOGIN - TIME string and formats it from the create at label
 of the comment."
-  (let* ((login-p (propertize (format "@%s" login) 'face 'magit-gh-issues-login-face))
+  (magit-gh-issues--make-login-face login)
+  (let* ((login-p (propertize (format "@%s" login) 'face (intern (magit-gh-issues--build-login-face-name login))))
          (time-string (format-time-string "%H:%M, %a %d %b, %Y" (date-to-time time)))
          (time-p (propertize time-string 'face 'magit-tag)))
     (format "  %s - %s" login-p time-string)))
