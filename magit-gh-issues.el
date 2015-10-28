@@ -560,29 +560,28 @@ It refreshes magit status to re-render the issues section."
         (funcall f (magit-gh-issues--get-api) (car repo) (cdr repo) id label)
         (magit-gh-issues-reload)))))
 
+(defun magit-gh-issues--call-assign-api (assignee)
+  "Perform the call to the assign with the ASSIGNEE and refresh."
+  (let* ((repo (magit-gh-issues--guess-repo))
+         (issue (cdr (assoc 'issue (magit-section-value (magit-current-section)))))
+         (id (oref issue :number)))
+    (oset issue :assignee (make-instance gh-user :login assignee))
+    (gh-issues-issue-update (magit-gh-issues--get-api) (car repo) (cdr repo) id issue)
+    (magit-gh-issues-reload)))
+
 (defun magit-gh-issues-assign ()
   "Assign an assignee to the current issue and refresh."
   (interactive)
   (magit-gh-issues-check-in-section '(issue comments comment))
   (let* ((assignees (magit-gh-issues-get-assignees))
-         (assignee-p (completing-read "Assign To: " assignees))
-         (repo (magit-gh-issues--guess-repo))
-         (issue (cdr (assoc 'issue (magit-section-value (magit-current-section)))))
-         (id (oref issue :number)))
-    (oset issue :assignee (make-instance gh-user :login assignee-p))
-    (gh-issues-issue-update (magit-gh-issues--get-api) (car repo) (cdr repo) id issue)
-    (magit-gh-issues-reload)))
+         (assignee-p (completing-read "Assign To: " assignees)))
+    (magit-gh-issues--call-assign-api assignee-p)))
 
 (defun magit-gh-issues-unassign ()
   "Unassign all assignees from the current issue and refresh."
   (interactive)
   (magit-gh-issues-check-in-section '(issue comments comment))
-  (let* ((repo (magit-gh-issues--guess-repo))
-         (issue (cdr (assoc 'issue (magit-section-value (magit-current-section)))))
-         (id (oref issue :number)))
-    (oset issue :assignee (make-instance gh-user :login nil))
-    (gh-issues-issue-update (magit-gh-issues--get-api) (car repo) (cdr repo) id issue)
-    (magit-gh-issues-reload)))
+  (magit-gh-issues--call-assign-api nil))
 
 (defun magit-gh-issues-insert-issues ()
   "Insert the actual issues sections into magit."
