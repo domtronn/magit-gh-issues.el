@@ -701,6 +701,7 @@ It refreshes magit status to re-render the issues section."
  RET    Visit the current issue" nil)
   :max-action-columns 4)
 
+;;;###autoload (autoload 'magit-gh-issues-popup-label "magit" nil t)
 (magit-define-popup magit-gh-issues-popup-label
   "Popup console for GitHub Issues label commands."
   'magit-commands nil nil
@@ -708,6 +709,7 @@ It refreshes magit status to re-render the issues section."
              (?a "Add Label" magit-gh-issues-add-label)
              (?k "Remove Label" magit-gh-issues-remove-label)))
 
+;;;###autoload (autoload 'magit-gh-issues-popup-assign "magit" nil t)
 (magit-define-popup magit-gh-issues-popup-assign
   "Popup console for GitHub Issues Assignment commands."
   'magit-commands nil nil
