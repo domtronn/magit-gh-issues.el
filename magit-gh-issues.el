@@ -415,7 +415,6 @@ It refreshes magit status to re-render the issues section."
     (if (not (and repo (car repo) (cdr repo)))
         (message "Remote repository is not configured or incorrect.")
       (magit-gh-issues-purge-cache "issues")
-      (magit-gh-issues-purge-cache "labels")
       (magit-gh-issues-get-labels)
       (magit-gh-issues-get-issues)
       (magit-refresh))))
