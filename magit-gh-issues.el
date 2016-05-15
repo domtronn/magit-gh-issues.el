@@ -500,7 +500,8 @@ It refreshes magit status to re-render the issues section."
         (gh-issues-issue-update (magit-gh-issues--get-api) (car repo) (cdr repo) id issue)
         (magit-gh-issues-reload)))))
 
-(magit-define-section-jumper issues "Issues")
+(magit-define-section-jumper magit-jump-to-issues "Issues" issues)
+(define-key magit-status-mode-map (kbd "ji") 'magit-jump-to-issues)
 
 (defun magit-gh-issues-collapse-issues ()
   "Collapse the issues section."
@@ -627,7 +628,7 @@ It refreshes magit status to re-render the issues section."
               (magit-gh-issues--append-ac-candidate (format "#%s" id) (oref issue :title))
 
               (when body
-                (magit-insert (magit-gh-issues--make-body-string body)))
+                (magit-insert-section (magit-gh-issues--make-body-string body)))
               (when comments
                 (magit-insert-section (comments comments t)
                   (magit-insert-heading "Comments:")
@@ -638,8 +639,8 @@ It refreshes magit status to re-render the issues section."
                           (comment-indent (make-string 4 ? )))
                       (magit-insert-section (comment `((issue . ,issue)))
                         (magit-insert-heading (magit-gh-issues--make-comment-heading-string user time))
-                        (magit-insert (concat comment-indent (magit-gh-issues--make-body-string body comment-indent)))))))
-                (magit-insert "\n")))))
+                        (magit-insert-section (concat comment-indent (magit-gh-issues--make-body-string body comment-indent)))))))
+                (magit-insert-section "\n")))))
         (when (> (length issues) 0)
           (insert "\n") t)
         (when (not issues-cached?)
